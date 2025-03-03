@@ -258,12 +258,16 @@ function createMobileInputField() {
   inputField.style.left = '-1000px'; // Hide it off-screen initially
   inputField.style.top = '0';
   inputField.style.zIndex = '1000';
-  inputField.style.fontSize = '16px'; // Prevent zoom on iOS
+  inputField.style.fontSize = '18px'; // Larger font size for better visibility
   inputField.style.padding = '12px';
   inputField.style.borderRadius = '8px';
-  inputField.style.border = '2px solid #4286f4';
+  inputField.style.border = '3px solid #4286f4'; // Thicker border for better visibility
   inputField.style.backgroundColor = '#2a3a5a';
   inputField.style.color = 'white';
+  inputField.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)'; // Add shadow for better visibility
+  inputField.style.outline = 'none'; // Remove default focus outline
+  inputField.style.webkitAppearance = 'none'; // Remove default iOS styling
+  inputField.style.touchAction = 'manipulation'; // Optimize for touch
   
   // Add event listeners
   inputField.addEventListener('input', function() {
@@ -271,10 +275,13 @@ function createMobileInputField() {
   });
   
   inputField.addEventListener('blur', function() {
-    // Hide the input when not in focus
-    this.style.left = '-1000px';
+    // Hide the input when not in focus, but with a delay to allow for taps
+    setTimeout(() => {
+      this.style.left = '-1000px';
+    }, 300);
   });
   
+  // Add to document
   document.body.appendChild(inputField);
 }
 
@@ -282,12 +289,33 @@ function createMobileInputField() {
 function showMobileInput(x, y) {
   let inputField = document.getElementById('mobileNameInput');
   if (inputField) {
-    // Position the input field at the tap location
-    inputField.style.left = (x - 150) + 'px';
-    inputField.style.top = (y - 25) + 'px';
-    inputField.style.width = '300px';
+    // Position the input field at the tap location, ensuring it's centered and visible
+    let inputWidth = 300;
+    let inputHeight = 50;
+    
+    // Calculate position to center the input field
+    let leftPos = Math.max(10, Math.min(windowWidth - inputWidth - 10, x - inputWidth/2));
+    let topPos = Math.max(10, Math.min(windowHeight - inputHeight - 10, y - inputHeight/2));
+    
+    // Apply styles to make it more visible and easier to tap
+    inputField.style.left = leftPos + 'px';
+    inputField.style.top = topPos + 'px';
+    inputField.style.width = inputWidth + 'px';
+    inputField.style.height = inputHeight + 'px';
+    inputField.style.fontSize = '18px';
+    inputField.style.padding = '12px';
+    inputField.style.boxSizing = 'border-box';
+    inputField.style.opacity = '1';
+    inputField.style.visibility = 'visible';
+    inputField.style.transform = 'translateZ(0)'; // Force hardware acceleration
     inputField.value = textoNombre;
-    inputField.focus();
+    
+    // Force focus with a slight delay to ensure it works on all mobile browsers
+    setTimeout(function() {
+      inputField.focus();
+      // Some mobile browsers need a click event to show keyboard
+      inputField.click();
+    }, 100);
   }
 }
 
@@ -1674,30 +1702,129 @@ function verificarColisiones() {
   }
 }
 
-// Add the missing dibujarTablero function
-function dibujarTablero() {
-  // Draw game elements
-  dibujarViborita();
-  dibujarCafes();
-  dibujarBaches();
-  dibujarPuntaje();
-  dibujarNombre();
-}
-
-// Add the missing dibujarCafes function
-function dibujarCafes() {
-  // Draw the cafe (coffee)
-  dibujarCafe();
-}
-
-// Add the missing dibujarPuntaje function
-function dibujarPuntaje() {
-  // This function is not needed as the score is now displayed in the header UI
-}
-
-// Add the missing dibujarNombre function
-function dibujarNombre() {
-  // This function is not needed as the player name is now displayed in the header UI
+// Add the missing drawGameOver function
+function drawGameOver() {
+  // First draw a completely opaque background to hide everything
+  push();
+  // Use a solid dark background
+  background(15, 15, 25);
+  
+  // Draw stars with very low opacity for subtle background
+  for (let star of stars) {
+    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
+    let alpha = map(twinkle, -1, 1, 10, 40);
+    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
+    
+    fill(255, 255, 255, alpha);
+    noStroke();
+    ellipse(star.x, star.y, size, size);
+  }
+  
+  // Calculate modal dimensions
+  let modalWidth = min(500, width * 0.9);
+  let modalHeight = min(400, height * 0.7);
+  
+  // Draw modal background with rounded corners and stronger border
+  rectMode(CENTER);
+  fill(25, 25, 40, 240);
+  strokeWeight(3);
+  stroke(200, 70, 70, 200);
+  rect(width/2, height/2, modalWidth, modalHeight, 20);
+  
+  // Add a subtle inner glow to the modal
+  noFill();
+  stroke(200, 70, 70, 50);
+  strokeWeight(1);
+  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
+  
+  // Simple, evenly spaced layout
+  let titleY = height/2 - modalHeight * 0.35;
+  let reasonY = titleY + 70;
+  let scoreY = reasonY + 70;
+  let buttonY = height/2 + modalHeight * 0.3;
+  
+  // Game Over text with glow effect
+  noStroke();
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
+  textAlign(CENTER, CENTER);
+  textSize(38);
+  textStyle(BOLD);
+  fill(255);
+  text('¡GAME OVER!', width/2, titleY);
+  
+  // Game over reason with icon
+  drawingContext.shadowBlur = 0;
+  textSize(22);
+  fill(220, 220, 220);
+  textStyle(NORMAL);
+  
+  if (colisionJugador) {
+    text(`¡Chocaste con ${colisionJugador}!`, width/2, reasonY);
+  } else {
+    switch(gameOverReason) {
+      case 'border':
+        text('¡Te saliste del mapa!', width/2, reasonY);
+        break;
+      case 'self':
+        text('¡Te chocaste con vos mismo!', width/2, reasonY);
+        break;
+      case 'bache':
+        text('¡Caíste en un bache!', width/2, reasonY);
+        break;
+    }
+  }
+  
+  // Score display with enhanced styling
+  textSize(18);
+  fill(180, 180, 180);
+  text('PUNTAJE FINAL', width/2, scoreY - 25);
+  
+  textSize(42);
+  textStyle(BOLD);
+  fill(255, 255, 220);
+  text(puntaje, width/2, scoreY + 15);
+  
+  // Restart button with hover effect
+  let buttonWidth = modalWidth * 0.5;
+  let buttonHeight = 55;
+  
+  // Check if mouse is over button
+  let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
+                       mouseX < width/2 + buttonWidth/2 &&
+                       mouseY > buttonY - buttonHeight/2 &&
+                       mouseY < buttonY + buttonHeight/2;
+  
+  // Button shadow and glow
+  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
+  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
+  
+  // Button with clean styling
+  fill(mouseOverButton ? '#4286f4' : '#2a5298');
+  stroke(100, 100, 200);
+  strokeWeight(2);
+  rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
+  
+  // Button text
+  drawingContext.shadowBlur = 0;
+  fill(255);
+  noStroke();
+  textSize(20);
+  textStyle(BOLD);
+  text('JUGAR DE NUEVO', width/2, buttonY);
+  
+  // Add different instructions for mobile vs desktop
+  textSize(16);
+  textStyle(NORMAL);
+  fill(150, 150, 150);
+  if (isMobile) {
+    text('Toca el botón para jugar de nuevo', width/2, buttonY + 45);
+  } else {
+    text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 45);
+  }
+  
+  // Reset drawing settings
+  pop();
 }
 
 // P5.js Draw Function - Main game loop
@@ -1799,4 +1926,30 @@ function checkBacheCollision() {
   }
   
   return false;
+}
+
+// Add the missing dibujarTablero function
+function dibujarTablero() {
+  // Draw game elements
+  dibujarViborita();
+  dibujarCafes();
+  dibujarBaches();
+  dibujarPuntaje();
+  dibujarNombre();
+}
+
+// Add the missing dibujarCafes function
+function dibujarCafes() {
+  // Draw the cafe (coffee)
+  dibujarCafe();
+}
+
+// Add the missing dibujarPuntaje function
+function dibujarPuntaje() {
+  // This function is not needed as the score is now displayed in the header UI
+}
+
+// Add the missing dibujarNombre function
+function dibujarNombre() {
+  // This function is not needed as the player name is now displayed in the header UI
 } 
