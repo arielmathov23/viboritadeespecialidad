@@ -625,10 +625,12 @@ function iniciarJuego() {
   cafe = generarCafe();
   cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
   
-  // Start with just 2 baches
-  for (let i = 0; i < 2; i++) {
-    baches.push(generarBache());
+  // Start with just 1 bache
+  let initialBache = generarBache();
+  if (initialBache) {
+    baches.push(initialBache);
   }
+  
   puntaje = 0;
   juegoTerminado = false;
   velocidadActual = velocidadInicial;
@@ -719,9 +721,10 @@ function reiniciarJuego() {
   direccion = {x: 0, y: 0};
   cafe = generarCafe();
   baches = [];
-  // Start with just 2 baches again
-  for (let i = 0; i < 2; i++) {
-    baches.push(generarBache());
+  // Start with just 1 bache again
+  let initialBache = generarBache();
+  if (initialBache) {
+    baches.push(initialBache);
   }
   puntaje = 0;
   juegoTerminado = false;
@@ -936,21 +939,11 @@ function moverViborita() {
     velocidadActual = min(velocidadActual, 15);
     frameRate(velocidadActual);
     
-    // Increase chance of generating baches after eating cafe
-    let baseProbability = map(puntaje, 0, 20, 0.4, 0.9); // 40% to 90% chance
-    let speedFactor = map(velocidadActual, velocidadInicial, 15, 0, 0.3); // Up to 30% additional chance based on speed
-    let shouldGenerateBache = random() < (baseProbability + speedFactor);
-    
-    if (shouldGenerateBache) {
-      // Calculate how many baches to add based on speed and score
-      let maxNewBaches = floor(map(velocidadActual, velocidadInicial, 15, 1, 3));
-      let numNewBaches = floor(random(1, maxNewBaches + 1));
-      
-      for (let i = 0; i < numNewBaches; i++) {
-        let newBache = generarBache();
-        if (newBache) {
-          baches.push(newBache);
-        }
+    // Add new bache every 3 points
+    if (puntaje % 3 === 0) {
+      let newBache = generarBache();
+      if (newBache) {
+        baches.push(newBache);
       }
     }
   } else {
@@ -1186,38 +1179,19 @@ function dibujarCafe() {
 
 // Generate a new bache at a random unoccupied position
 function generarBache() {
-  let posicionesOcupadas = viborita.concat(baches.flatMap(b => b.squares));
+  let posicionesOcupadas = viborita.concat(baches);
   let attempts = 0;
-  const maxAttempts = 100; // Prevent infinite loops
+  const maxAttempts = 50;
   
   while (attempts < maxAttempts) {
-    let size = Math.random() < 0.7 ? 1 : (Math.random() < 0.7 ? 2 : 3); // 70% size 1, 21% size 2, 9% size 3
     let pos = {
-      x: Math.floor(random(GRILLA_ANCHO - size + 1)), // Ensure bache stays within grid
-      y: Math.floor(random(GRILLA_ALTO - size + 1)),
-      size: size,
-      squares: [] // Will store all grid positions this bache occupies
+      x: Math.floor(random(GRILLA_ANCHO)),
+      y: Math.floor(random(GRILLA_ALTO))
     };
-
-    // Generate all squares this bache will occupy
-    let isValid = true;
-    for (let dx = 0; dx < size; dx++) {
-      for (let dy = 0; dy < size; dy++) {
-        let square = {x: pos.x + dx, y: pos.y + dy};
-        
-        // Check if this square is occupied or is the café
-        if (posicionesOcupadas.some(p => p.x === square.x && p.y === square.y) ||
-            (square.x === cafe.x && square.y === cafe.y)) {
-          isValid = false;
-          break;
-        }
-        pos.squares.push(square);
-      }
-      if (!isValid) break;
-    }
-
-    if (isValid) {
-      console.log('Generated new bache at:', pos);
+    
+    // Check if position is occupied by snake, other baches, or café
+    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y) &&
+        !(pos.x === cafe.x && pos.y === cafe.y)) {
       return pos;
     }
     attempts++;
@@ -1237,71 +1211,40 @@ function dibujarBaches() {
   let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
   
   for (let bache of baches) {
-    // Calculate the center position of the entire bache
-    let bacheX = offsetX + (bache.x + bache.size/2) * scaledCuadra;
-    let bacheY = offsetY + (bache.y + bache.size/2) * scaledCuadra;
+    let x = offsetX + bache.x * scaledCuadra + scaledCuadra/2;
+    let y = offsetY + bache.y * scaledCuadra + scaledCuadra/2;
     
     if (bacheIcon) {
-      let baseIconSize = scaledCuadra * 0.9; // Base size for single-square bache
-      let iconSize = baseIconSize * bache.size; // Scale based on number of squares
+      let iconSize = scaledCuadra * 0.9;
       
-      // Enhanced shadow effect that scales with size
-      drawingContext.shadowBlur = 12 * bache.size;
+      // Simple shadow effect
+      drawingContext.shadowBlur = 10;
       drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
       
       push();
       imageMode(CENTER);
-      // Add slight rotation for visual variety
-      rotate(bache.size * 0.1);
-      image(bacheIcon, bacheX, bacheY, iconSize, iconSize);
+      image(bacheIcon, x, y, iconSize, iconSize);
       pop();
-      
-      // Add a subtle glow effect for larger baches
-      if (bache.size > 1) {
-        drawingContext.shadowBlur = 20;
-        drawingContext.shadowColor = 'rgba(255, 100, 100, 0.3)';
-        noFill();
-        stroke(255, 100, 100, 30);
-        ellipse(bacheX, bacheY, iconSize * 1.2, iconSize * 1.2);
-      }
       
       drawingContext.shadowBlur = 0;
     } else {
-      // Fallback circle rendering with enhanced size differences
+      // Fallback circle rendering
       noStroke();
       fill(COLOR_BACHE);
-      let baseSize = scaledCuadra * 0.9; // Base size for single-square bache
-      let totalSize = baseSize * bache.size;
+      let size = scaledCuadra * 0.8;
       
       // Draw main bache shape
-      ellipse(bacheX, bacheY, totalSize, totalSize);
+      ellipse(x, y, size, size);
       
-      // Add texture details that scale with size
+      // Add simple texture details
       fill(60);
-      for (let i = 0; i < bache.size * 3; i++) {
+      for (let i = 0; i < 3; i++) {
         let detailSize = 3 * scale;
         let angle = random(TWO_PI);
-        let distance = random(totalSize/4);
-        let detailX = bacheX + cos(angle) * distance;
-        let detailY = bacheY + sin(angle) * distance;
+        let distance = random(size/4);
+        let detailX = x + cos(angle) * distance;
+        let detailY = y + sin(angle) * distance;
         ellipse(detailX, detailY, detailSize, detailSize);
-      }
-      
-      // Add crack details for larger baches
-      if (bache.size > 1) {
-        stroke(40);
-        strokeWeight(2);
-        for (let i = 0; i < bache.size * 2; i++) {
-          let angle = random(TWO_PI);
-          let startDist = random(totalSize/4);
-          let endDist = startDist + random(totalSize/4);
-          line(
-            bacheX + cos(angle) * startDist,
-            bacheY + sin(angle) * startDist,
-            bacheX + cos(angle) * endDist,
-            bacheY + sin(angle) * endDist
-          );
-        }
       }
     }
   }
