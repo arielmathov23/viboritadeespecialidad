@@ -646,7 +646,7 @@ function iniciarJuego() {
   try {
     const connectWebSocket = () => {
       // Connect to dedicated WebSocket server
-      ws = new WebSocket('wss://viborita-ws.glitch.me');
+      ws = new WebSocket('wss://smoggy-cooperative-carrot.glitch.me');
       
       ws.onopen = () => {
         console.log('Connected to game server');
