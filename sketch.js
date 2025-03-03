@@ -373,6 +373,12 @@ function dibujarModalNombre() {
     fill(180);
     text("Presiona ENTER para comenzar", width/2, instructionsY);
   }
+  
+  // Add Flaticon attribution at the bottom of the modal
+  textSize(10);
+  textStyle(NORMAL);
+  fill(100, 100, 100);
+  text('Icons by Flaticon', width/2, height/2 + modalHeight/2 - 15);
 }
 
 // Draw the game over modal
@@ -527,6 +533,11 @@ function dibujarModalGameOver() {
   textStyle(NORMAL);
   fill(150, 150, 150);
   text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 50);
+  
+  // Add Flaticon attribution
+  textSize(10);
+  fill(100, 100, 100);
+  text('Icons by Flaticon', width/2, height/2 + modalHeight/2 - 15);
   
   drawingContext.shadowBlur = 0;
 }
