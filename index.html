@@ -28,41 +28,45 @@
         /* Mobile control styles */
         .mobile-controls {
             display: none; /* Hidden by default, shown on mobile */
-            position: absolute;
-            z-index: 10;
-            bottom: 20px;
+            position: fixed; /* Use fixed instead of absolute */
+            z-index: 100; /* Lower z-index to not interfere with input */
             width: 100%;
-            height: 150px;
+            height: 100%;
+            pointer-events: none; /* Allow clicks to pass through the container */
         }
         .control-button {
             position: absolute;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(80, 80, 120, 0.4);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 28px;
             color: white;
             user-select: none;
             -webkit-user-select: none;
+            pointer-events: auto; /* Make buttons clickable */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        /* New positioning according to requirements */
+        .mobile-up {
+            left: 20px;
+            bottom: 100px; /* Above the left button */
         }
         .mobile-left {
-            left: 30px;
-            bottom: 50px;
-        }
-        .mobile-right {
-            right: 30px;
-            bottom: 50px;
-        }
-        .mobile-up {
-            left: 30px;
-            bottom: 120px;
+            left: 20px;
+            bottom: 20px; /* Bottom left */
         }
         .mobile-down {
-            left: 30px;
-            bottom: 0;
+            right: 20px;
+            bottom: 20px; /* Bottom right */
+        }
+        .mobile-right {
+            right: 20px;
+            bottom: 100px; /* Above the down button */
         }
         /* Hide controls on desktop */
         @media (min-width: 769px) {
@@ -76,14 +80,31 @@
                 display: block;
             }
         }
+        /* Style for the mobile input field */
+        #mobileNameInput {
+            position: absolute;
+            font-size: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 3px solid #4286f4;
+            background-color: #2a3a5a;
+            color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            outline: none;
+            -webkit-appearance: none;
+            touch-action: manipulation;
+            box-sizing: border-box;
+            z-index: 2000;
+            left: -1000px; /* Hidden by default */
+        }
     </style>
 </head>
 <body>
     <!-- Mobile control buttons -->
     <div class="mobile-controls">
         <div class="control-button mobile-up" id="btn-up">↑</div>
-        <div class="control-button mobile-down" id="btn-down">↓</div>
         <div class="control-button mobile-left" id="btn-left">←</div>
+        <div class="control-button mobile-down" id="btn-down">↓</div>
         <div class="control-button mobile-right" id="btn-right">→</div>
     </div>
     <script src="sketch.js"></script>

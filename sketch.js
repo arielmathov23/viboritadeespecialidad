@@ -289,25 +289,28 @@ function createMobileInputField() {
 function showMobileInput(x, y) {
   let inputField = document.getElementById('mobileNameInput');
   if (inputField) {
-    // Position the input field at the tap location, ensuring it's centered and visible
-    let inputWidth = 300;
-    let inputHeight = 50;
+    // Hide any existing HTML input fields that might be showing
+    let allInputs = document.querySelectorAll('input');
+    allInputs.forEach(input => {
+      if (input.id !== 'mobileNameInput') {
+        input.style.display = 'none';
+      }
+    });
     
-    // Calculate position to center the input field
-    let leftPos = Math.max(10, Math.min(windowWidth - inputWidth - 10, x - inputWidth/2));
-    let topPos = Math.max(10, Math.min(windowHeight - inputHeight - 10, y - inputHeight/2));
+    // Calculate position to center the input field - fixed position in the center
+    let leftPos = Math.max(10, Math.min(windowWidth - 300 - 10, width/2 - 140));
+    let topPos = Math.max(10, Math.min(windowHeight - 50 - 10, height/2));
     
     // Apply styles to make it more visible and easier to tap
+    inputField.style.position = 'fixed'; // Use fixed positioning
     inputField.style.left = leftPos + 'px';
     inputField.style.top = topPos + 'px';
-    inputField.style.width = inputWidth + 'px';
-    inputField.style.height = inputHeight + 'px';
-    inputField.style.fontSize = '18px';
-    inputField.style.padding = '12px';
-    inputField.style.boxSizing = 'border-box';
+    inputField.style.width = '280px';
+    inputField.style.height = '50px';
     inputField.style.opacity = '1';
     inputField.style.visibility = 'visible';
-    inputField.style.transform = 'translateZ(0)'; // Force hardware acceleration
+    inputField.style.display = 'block';
+    inputField.style.zIndex = '2000'; // Ensure it's above everything
     inputField.value = textoNombre;
     
     // Force focus with a slight delay to ensure it works on all mobile browsers
@@ -337,9 +340,9 @@ function drawNombreIngreso() {
     ellipse(star.x, star.y, size, size);
   }
   
-  // Calculate modal dimensions - make it larger on mobile
-  let modalWidth = isMobile ? min(width * 0.95, 600) : min(550, width * 0.9);
-  let modalHeight = isMobile ? min(height * 0.8, 700) : min(480, height * 0.75);
+  // Calculate modal dimensions - make it appropriate for mobile
+  let modalWidth = isMobile ? min(width * 0.85, 450) : min(550, width * 0.9);
+  let modalHeight = isMobile ? min(height * 0.5, 400) : min(480, height * 0.75);
   let inputWidth = modalWidth * 0.8; // Wider input on mobile
   
   // Draw modal background with rounded corners and stronger border
@@ -356,43 +359,43 @@ function drawNombreIngreso() {
   rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
   
   // Simple, evenly spaced layout - adjusted for mobile
-  let titleY = height/2 - modalHeight * 0.35;
-  let subtitleY = titleY + (isMobile ? 60 : 45);
-  let labelY = height/2 - (isMobile ? 50 : 30);
-  let inputY = height/2 + (isMobile ? 30 : 20);
-  let buttonY = height/2 + modalHeight * 0.3;
+  let titleY = height/2 - modalHeight * 0.3;
+  let subtitleY = titleY + (isMobile ? 35 : 35);
+  let labelY = height/2 - (isMobile ? 10 : 30);
+  let inputY = height/2 + (isMobile ? 20 : 20);
+  let buttonY = height/2 + modalHeight * 0.25;
   
-  // Draw title with clean, elegant styling - larger on mobile
+  // Draw title with clean, elegant styling - smaller on mobile
   noStroke();
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
   fill(255);
-  textSize(isMobile ? 36 : 28);
+  textSize(isMobile ? 24 : 28); // Reduced size for mobile
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  text('¡Bienvenido a', width/2, titleY - (isMobile ? 30 : 20));
-  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 30 : 20));
+  text('¡Bienvenido a', width/2, titleY - (isMobile ? 15 : 20));
+  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 15 : 20));
   
-  // Draw subtitle - larger on mobile
+  // Draw subtitle - appropriate size for mobile
   drawingContext.shadowBlur = 5;
-  textSize(isMobile ? 20 : 16);
+  textSize(isMobile ? 14 : 16);
   textStyle(NORMAL);
   fill(200, 200, 200);
   text('El juego de cafetería en Buenos Aires', width/2, subtitleY);
   
-  // Draw input label - larger on mobile
+  // Draw input label - appropriate size for mobile
   fill(255);
-  textSize(isMobile ? 24 : 18);
+  textSize(isMobile ? 18 : 18);
   textStyle(NORMAL);
   text('Ingresá tu nombre:', width/2, labelY);
   
-  // Draw input box with clean styling - larger on mobile
+  // Draw input box with clean styling - appropriate size for mobile
   drawingContext.shadowBlur = 10;
   drawingContext.shadowColor = 'rgba(100, 100, 255, 0.3)';
   fill(35, 35, 55);
   stroke('#4286f4');
   strokeWeight(2);
-  let inputHeight = isMobile ? 60 : 50;
+  let inputHeight = isMobile ? 50 : 50;
   rect(width/2, inputY, inputWidth, inputHeight, 10);
   
   // Draw text input content
@@ -400,19 +403,19 @@ function drawNombreIngreso() {
   noStroke();
   fill(255);
   textAlign(CENTER, CENTER);
-  textSize(isMobile ? 26 : 20);
+  textSize(isMobile ? 20 : 20); // Reduced size for mobile
   text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
   
   // Add touch instructions for mobile
   if (isMobile) {
-    textSize(18);
+    textSize(14); // Smaller text
     fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 50);
+    text('Toca aquí para escribir', width/2, inputY + 35);
   }
   
-  // Draw start button with clean styling - larger on mobile
-  let buttonWidth = inputWidth * 0.7;
-  let buttonHeight = isMobile ? 70 : 55;
+  // Draw start button with clean styling - appropriate size for mobile
+  let buttonWidth = inputWidth * 0.6; // Narrower button
+  let buttonHeight = isMobile ? 50 : 55; // Slightly smaller button
   let buttonHover = mouseX > width/2 - buttonWidth/2 && 
                    mouseX < width/2 + buttonWidth/2 && 
                    mouseY > buttonY - buttonHeight/2 && 
@@ -425,37 +428,46 @@ function drawNombreIngreso() {
   strokeWeight(2);
   rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
   
-  // Button text - larger on mobile
+  // Button text - appropriate size for mobile
   drawingContext.shadowBlur = 0;
   fill(255);
   noStroke();
-  textSize(isMobile ? 28 : 20);
+  textSize(isMobile ? 22 : 20); // Reduced size for mobile
   textStyle(BOLD);
   text('¡JUGAR!', width/2, buttonY);
   
-  // Add instruction for mobile view if name is empty
+  // Add validation message if name is empty
   if (isMobile && textoNombre.length === 0) {
     fill(255, 200, 200);
-    textSize(18);
+    textSize(14); // Smaller text
     textStyle(NORMAL);
-    text('Por favor, ingresa un nombre para continuar', width/2, buttonY + 50);
+    text('Por favor, ingresa un nombre para continuar', width/2, buttonY + 35);
   }
   
   // Reset drawing settings
   pop();
+  
+  // Make sure mobile controls are visible during onboarding
+  if (isMobile) {
+    let controlsDiv = document.querySelector('.mobile-controls');
+    if (controlsDiv) {
+      controlsDiv.style.display = 'block';
+      controlsDiv.style.zIndex = '50'; // Lower than modal but still visible
+    }
+  }
 }
 
-// Update mousePressed function to handle the mobile input field
+// Update mousePressed function to handle the mobile input field and fix JUGAR button
 function mousePressed() {
   if (ingresandoNombre) {
-    let modalWidth = isMobile ? min(width * 0.95, 600) : min(550, width * 0.9);
-    let modalHeight = isMobile ? min(height * 0.8, 700) : min(480, height * 0.75);
+    let modalWidth = isMobile ? min(width * 0.85, 500) : min(550, width * 0.9);
+    let modalHeight = isMobile ? min(height * 0.6, 500) : min(480, height * 0.75);
     let inputWidth = modalWidth * 0.8;
-    let inputHeight = isMobile ? 60 : 50;
-    let inputY = height/2 + (isMobile ? 30 : 20);
-    let buttonWidth = inputWidth * 0.7;
-    let buttonHeight = isMobile ? 70 : 55;
-    let buttonY = height/2 + modalHeight * 0.3;
+    let inputHeight = isMobile ? 50 : 50;
+    let inputY = height/2 + (isMobile ? 20 : 20);
+    let buttonWidth = inputWidth * 0.6;
+    let buttonHeight = isMobile ? 60 : 55;
+    let buttonY = height/2 + modalHeight * 0.25;
     
     // Check if input field was clicked
     if (isMobile && 
@@ -468,20 +480,27 @@ function mousePressed() {
       return;
     }
     
-    // Check if button was clicked and name is not empty
-    if (textoNombre.length > 0 &&
-        mouseX > width/2 - buttonWidth/2 && 
+    // Check if button was clicked
+    if (mouseX > width/2 - buttonWidth/2 && 
         mouseX < width/2 + buttonWidth/2 && 
         mouseY > buttonY - buttonHeight/2 && 
         mouseY < buttonY + buttonHeight/2) {
-      nombreJugador = textoNombre;
-      ingresandoNombre = false;
-      iniciarJuego();
       
-      // Hide the mobile input field
-      let inputField = document.getElementById('mobileNameInput');
-      if (inputField) {
-        inputField.style.left = '-1000px';
+      // Only proceed if name is not empty
+      if (textoNombre.length > 0) {
+        nombreJugador = textoNombre;
+        ingresandoNombre = false;
+        iniciarJuego();
+        
+        // Hide the mobile input field
+        let inputField = document.getElementById('mobileNameInput');
+        if (inputField) {
+          inputField.style.left = '-1000px';
+          inputField.style.display = 'none';
+        }
+      } else if (isMobile) {
+        // If name is empty on mobile, show the input field
+        showMobileInput(width/2, inputY);
       }
     }
   } else if (juegoTerminado) {
