@@ -1,0 +1,7 @@
+This is a placeholder for the coffee-icon.png file.
+
+Since we can't directly create a binary PNG file through code editing, there are two options:
+1. Use the SVG file (coffee-icon.svg) we created, which p5.js can load directly
+2. Manually add a PNG coffee icon image file to the assets folder
+
+For now, we can modify the sketch.js file to load the SVG version instead of PNG. 
