@@ -939,7 +939,7 @@ function moverViborita() {
     lastCoffeePosition = {x: cafe.x, y: cafe.y};
     
     // Update score and generate new cafe
-    puntaje += 2;
+    puntaje += 1;
     cafe = generarCafe();
     currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
@@ -1425,7 +1425,15 @@ function dibujarMusicControl() {
 
 // Main game loop function
 function jugar() {
-  // Draw space background is already called in draw()
+  // Draw space background
+  drawSpaceBackground();
+  
+  // Draw header UI
+  drawGameUI();
+  
+  // Translate everything below the header
+  push();
+  translate(0, 60); // Translate by header height
   
   // Move snake and check collisions
   if (direction.x !== 0 || direction.y !== 0) {
@@ -1438,133 +1446,96 @@ function jugar() {
   dibujarCafe();
   dibujarViborita();
   
-  // Draw UI elements
-  drawGameUI();
-  dibujarMusicControl(); // Add music control
+  // Draw music control
+  dibujarMusicControl();
   
-  // Draw current neighborhood label with highlight
-  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
-  
-  // Draw highlighted current neighborhood label
-  let labelY = 30;
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.8)';
-  drawNeighborhoodLabel(currentNeighborhood, width/2, labelY);
-  drawingContext.shadowBlur = 0;
+  pop();
 }
 
 // Draw the game UI with player name and score
 function drawGameUI() {
-  // Score panel in top right with improved dimensions
-  let panelWidth = 220;
-  let panelHeight = 80;
-  let margin = 25;
-  let cornerRadius = 15;
+  // Header dimensions
+  let headerHeight = 60;
   
-  // Panel shadow for depth
+  // Draw header background with space theme
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
   
-  // Panel background with gradient
-  let panelY = margin + panelHeight/2;
+  // Header background with gradient
   let gradient = drawingContext.createLinearGradient(
-    width - panelWidth - margin, panelY - panelHeight/2,
-    width - margin, panelY + panelHeight/2
+    0, 0,
+    0, headerHeight
   );
   gradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
   gradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
   drawingContext.fillStyle = gradient;
   
-  rect(width - panelWidth/2 - margin, panelY, panelWidth, panelHeight, cornerRadius);
+  // Draw header rectangle
+  rect(width/2, headerHeight/2, width, headerHeight);
   
-  // Decorative accent line with glow
-  drawingContext.shadowBlur = 8;
-  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
-  stroke(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2], 180);
+  // Add subtle line separator
+  stroke(100, 200, 255, 100);
   strokeWeight(2);
-  line(width - panelWidth + margin, margin + 22,
-       width - margin - 10, margin + 22);
+  line(0, headerHeight, width, headerHeight);
   noStroke();
   
+  // Reset shadow
   drawingContext.shadowBlur = 0;
   
-  // Player section
-  textAlign(LEFT, TOP);
+  // Current neighborhood (center)
+  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
+  textAlign(CENTER, CENTER);
   
-  // Label with subtle glow
+  // Neighborhood label
   fill(180, 180, 180);
-  textSize(12);
-  textStyle(BOLD);
-  text("JUGADOR", width - panelWidth + margin, margin + 8);
+  textSize(14);
+  textStyle(NORMAL);
+  text("BARRIO ACTUAL", width/2, headerHeight/2 - 12);
   
-  // Player name with enhanced styling
+  // Neighborhood name with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+  fill(255);
+  textSize(24);
+  textStyle(BOLD);
+  text(currentNeighborhood, width/2, headerHeight/2 + 12);
+  drawingContext.shadowBlur = 0;
+  
+  // Player section (left)
+  textAlign(LEFT, CENTER);
+  
+  // Player label
+  fill(180, 180, 180);
+  textSize(14);
+  textStyle(NORMAL);
+  text("JUGADOR", 30, headerHeight/2 - 12);
+  
+  // Player name
+  fill(255);
   textSize(20);
   textStyle(BOLD);
-  fill(255);
-  text(nombreJugador, width - panelWidth + margin, margin + 30);
+  text(nombreJugador, 30, headerHeight/2 + 12);
   
-  // Score section
-  textAlign(RIGHT, TOP);
+  // Score section (right)
+  textAlign(RIGHT, CENTER);
   
-  // Score label with consistent styling
+  // Score label
   fill(180, 180, 180);
-  textSize(12);
-  text("PUNTAJE", width - margin - 10, margin + 8);
+  textSize(14);
+  textStyle(NORMAL);
+  text("PUNTAJE", width - 30, headerHeight/2 - 12);
   
-  // Score value with enhanced styling
-  textSize(28);
-  textStyle(BOLD);
+  // Score value with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
   fill(255, 255, 220);
-  text(puntaje, width - margin - 10, margin + 30);
+  textSize(24);
+  textStyle(BOLD);
+  text(puntaje, width - 30, headerHeight/2 + 12);
+  drawingContext.shadowBlur = 0;
 }
 
-// Helper function to determine neighborhood based on screen position
-function getNeighborhoodFromPosition(x, y) {
-  // Simple quadrant check
-  if (x < width/2) {
-    if (y < height/2) {
-      return 'RECOLETA';
-    } else {
-      return 'COLEGIALES';
-    }
-  } else {
-    if (y < height/2) {
-      return 'PALERMO';
-    } else {
-      return 'CHACARITA';
-    }
-  }
-}
-
-// Add new function to check for collisions
-function verificarColisiones() {
-  let cabeza = snake[0];
-  
-  // Skip ALL collision checks during coffee drinking animation
-  if (drinkingCoffee) {
-    return;
-  }
-
-  // Check self collision only when not drinking
-  for (let i = 4; i < snake.length; i++) {  // Start from 4 to give more forgiveness
-    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
-      juegoTerminado = true;
-      gameOverReason = 'self';
-      return;
-    }
-  }
-  
-  // Check bache collision
-  for (let bache of baches) {
-    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.7) {
-      juegoTerminado = true;
-      gameOverReason = 'bache';
-      return;
-    }
-  }
-}
-
-// Add new function to draw space background
+// Update drawSpaceBackground to not draw neighborhood labels
 function drawSpaceBackground() {
   // Update color transition based on score
   let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
@@ -1616,39 +1587,6 @@ function drawSpaceBackground() {
   line(width/2, 0, width/2, height);
   // Horizontal divider
   line(0, height/2, width, height/2);
-
-  // Draw neighborhood labels
-  drawNeighborhoodLabel("RECOLETA", width/4, 30);
-  drawNeighborhoodLabel("PALERMO", width * 3/4, 30);
-  drawNeighborhoodLabel("COLEGIALES", width/4, height - 30);
-  drawNeighborhoodLabel("CHACARITA", width * 3/4, height - 30);
-}
-
-// Update drawNeighborhoodLabel for better visibility
-function drawNeighborhoodLabel(name, x, y) {
-  // Background pill shape with a more distinctive color
-  fill(30, 30, 40, 200);
-  let labelWidth = textWidth(name) + 40;
-  let labelHeight = 30;
-  rect(x, y, labelWidth, labelHeight, 15);
-  
-  // Add a subtle glow effect
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-  stroke(100, 200, 255, 150);
-  strokeWeight(2);
-  noFill();
-  rect(x, y, labelWidth, labelHeight, 15);
-  noStroke();
-  
-  // Text with improved styling
-  fill(255);
-  textSize(16);
-  textStyle(BOLD);
-  textAlign(CENTER, CENTER);
-  text(name, x, y);
-  
-  drawingContext.shadowBlur = 0;
 }
 
 // Add the missing function for multiplayer collisions
@@ -1760,5 +1698,51 @@ function sendPlayerUpdate(cabeza) {
       snake: snake,
       score: puntaje
     }));
+  }
+}
+
+// Helper function to determine neighborhood based on screen position
+function getNeighborhoodFromPosition(x, y) {
+  // Simple quadrant check
+  if (x < width/2) {
+    if (y < height/2) {
+      return 'RECOLETA';
+    } else {
+      return 'COLEGIALES';
+    }
+  } else {
+    if (y < height/2) {
+      return 'PALERMO';
+    } else {
+      return 'CHACARITA';
+    }
+  }
+}
+
+// Add new function to check for collisions
+function verificarColisiones() {
+  let cabeza = snake[0];
+  
+  // Skip ALL collision checks during coffee drinking animation
+  if (drinkingCoffee) {
+    return;
+  }
+
+  // Check self collision only when not drinking
+  for (let i = 4; i < snake.length; i++) {  // Start from 4 to give more forgiveness
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
+      juegoTerminado = true;
+      gameOverReason = 'self';
+      return;
+    }
+  }
+  
+  // Check bache collision
+  for (let bache of baches) {
+    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.7) {
+      juegoTerminado = true;
+      gameOverReason = 'bache';
+      return;
+    }
   }
 } 
