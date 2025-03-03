@@ -1477,6 +1477,47 @@ function drawSpaceBackground() {
     ellipse(star.x, star.y, size, size);
   }
   drawingContext.shadowBlur = 0;
+
+  // Draw thin lines to separate neighborhoods
+  stroke(255, 255, 255, 40);
+  strokeWeight(1);
+  // Vertical divider
+  line(width/2, 0, width/2, height);
+  // Horizontal divider
+  line(0, height/2, width, height/2);
+
+  // Draw neighborhood labels
+  drawNeighborhoodLabel("RECOLETA", width/4, 30);
+  drawNeighborhoodLabel("PALERMO", width * 3/4, 30);
+  drawNeighborhoodLabel("COLEGIALES", width/4, height - 30);
+  drawNeighborhoodLabel("CHACARITA", width * 3/4, height - 30);
+}
+
+// Update drawNeighborhoodLabel for better visibility
+function drawNeighborhoodLabel(name, x, y) {
+  // Background pill shape with a more distinctive color
+  fill(30, 30, 40, 200);
+  let labelWidth = textWidth(name) + 40;
+  let labelHeight = 30;
+  rect(x, y, labelWidth, labelHeight, 15);
+  
+  // Add a subtle glow effect
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+  stroke(100, 200, 255, 150);
+  strokeWeight(2);
+  noFill();
+  rect(x, y, labelWidth, labelHeight, 15);
+  noStroke();
+  
+  // Text with improved styling
+  fill(255);
+  textSize(16);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text(name, x, y);
+  
+  drawingContext.shadowBlur = 0;
 }
 
 // Add the missing function for multiplayer collisions
