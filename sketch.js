@@ -918,29 +918,34 @@ function moverViborita() {
     return;
   }
   
-  // Check collision with other players
-  let collidedPlayer = checkPlayerCollisions(cabeza);
-  if (collidedPlayer) {
-    juegoTerminado = true;
-    colisionJugador = collidedPlayer;
-    return;
+  // Check collision with other players only if not drinking
+  if (!drinkingCoffee) {
+    let collidedPlayer = checkPlayerCollisions(cabeza);
+    if (collidedPlayer) {
+      juegoTerminado = true;
+      colisionJugador = collidedPlayer;
+      return;
+    }
   }
   
   snake.unshift(cabeza);
   
   // Check cafe collection with a more forgiving distance
-  if (cafe && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE) {
-    // Start drinking animation without interrupting movement
+  if (cafe && !drinkingCoffee && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE * 1.2) {
+    // Start drinking animation
     drinkingCoffee = true;
     drinkingAnimation = 0;
     drinkingStartTime = millis();
     lastCoffeePosition = {x: cafe.x, y: cafe.y};
     
-    puntaje += 2; // Increased score for coffee collection
+    // Update score and generate new cafe
+    puntaje += 2;
     cafe = generarCafe();
+    currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
-    velocidadActual = velocidadInicial * Math.pow(1.05, puntaje);
-    velocidadActual = min(velocidadActual, 20);
+    
+    // Increase speed with a cap
+    velocidadActual = min(velocidadInicial * Math.pow(1.05, puntaje), 20);
     frameRate(velocidadActual);
     
     // Add new bache every 3 points
@@ -986,10 +991,11 @@ function dibujarViborita() {
     }
   });
   
-  // Draw local player's snake
+  // Reset drawing settings
   noStroke();
+  rectMode(CENTER);
   
-  // Draw body segments with smoother appearance
+  // Draw local player's snake body
   for (let i = snake.length - 1; i > 0; i--) {
     let segmento = snake[i];
     let alpha = map(i, 0, snake.length - 1, 255, 150);
@@ -1000,55 +1006,81 @@ function dibujarViborita() {
     rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
   }
   
-  // Draw head with rounded corners
+  // Draw head
   let cabeza = snake[0];
   fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
        myColor ? myColor[1] : COLOR_VIBORITA[1], 
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
   rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
   
-  // Draw player name above head
+  // Draw player name
   fill(255);
   textSize(14);
   textAlign(CENTER, BOTTOM);
   text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
   
-  // Draw eyes with improved appearance and drinking animation
+  // Draw eyes
   fill(255);
   let eyeSize = 5;
-  let eyeOffsetX = direction.x * 3;
-  let eyeOffsetY = direction.y * 3;
+  let eyeSpacing = 8;
+  let eyeY = cabeza.y - 4;
   
+  // Adjust eye positions based on direction
+  if (direction.x !== 0) {
+    // Moving horizontally
+    let eyeX1 = cabeza.x - eyeSpacing/2;
+    let eyeX2 = cabeza.x + eyeSpacing/2;
+    if (direction.x > 0) { // Moving right
+      eyeX1 += 2;
+      eyeX2 += 2;
+    } else { // Moving left
+      eyeX1 -= 2;
+      eyeX2 -= 2;
+    }
+    ellipse(eyeX1, eyeY, eyeSize, eyeSize);
+    ellipse(eyeX2, eyeY, eyeSize, eyeSize);
+  } else if (direction.y !== 0) {
+    // Moving vertically
+    let eyeX1 = cabeza.x - eyeSpacing/2;
+    let eyeX2 = cabeza.x + eyeSpacing/2;
+    if (direction.y > 0) { // Moving down
+      eyeY += 2;
+    } else { // Moving up
+      eyeY -= 2;
+    }
+    ellipse(eyeX1, eyeY, eyeSize, eyeSize);
+    ellipse(eyeX2, eyeY, eyeSize, eyeSize);
+  } else {
+    // Not moving
+    ellipse(cabeza.x - eyeSpacing/2, eyeY, eyeSize, eyeSize);
+    ellipse(cabeza.x + eyeSpacing/2, eyeY, eyeSize, eyeSize);
+  }
+  
+  // Draw drinking animation
   if (drinkingCoffee) {
-    // Update drinking animation
     let elapsed = millis() - drinkingStartTime;
     drinkingAnimation = elapsed / DRINKING_DURATION;
     
     if (drinkingAnimation >= 1) {
       drinkingCoffee = false;
     } else {
-      // Happy eyes during drinking
+      // Happy eyes (slightly larger during drinking)
       let blinkPhase = sin(frameCount * 0.5);
-      eyeSize = map(blinkPhase, -1, 1, 3, 6);
+      eyeSize = map(blinkPhase, -1, 1, 4, 7);
       
-      // Draw coffee particles and steam effect
+      // Draw happy mouth
+      stroke(255);
+      strokeWeight(2);
+      noFill();
+      let smileSize = map(drinkingAnimation, 0, 1, 0, 8);
+      arc(cabeza.x, cabeza.y + 2, smileSize, smileSize, 0, PI);
+      noStroke();
+      
+      // Draw coffee effect
       if (lastCoffeePosition) {
         drawCoffeeEffect(lastCoffeePosition.x, lastCoffeePosition.y, drinkingAnimation);
       }
     }
-  }
-  
-  noStroke();
-  ellipse(cabeza.x - 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
-  ellipse(cabeza.x + 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
-  
-  // Draw happy mouth during drinking
-  if (drinkingCoffee) {
-    stroke(255);
-    strokeWeight(2);
-    noFill();
-    let smileSize = map(drinkingAnimation, 0, 1, 0, 8);
-    arc(cabeza.x, cabeza.y + 2, smileSize, smileSize, 0, PI);
   }
 }
 
@@ -1508,20 +1540,23 @@ function getNeighborhoodFromPosition(x, y) {
 function verificarColisiones() {
   let cabeza = snake[0];
   
-  // Check self collision (ignore during drinking animation)
-  if (!drinkingCoffee) {
-    for (let i = 1; i < snake.length; i++) {
-      if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
-        juegoTerminado = true;
-        gameOverReason = 'self';
-        return;
-      }
+  // Skip ALL collision checks during coffee drinking animation
+  if (drinkingCoffee) {
+    return;
+  }
+
+  // Check self collision only when not drinking
+  for (let i = 4; i < snake.length; i++) {  // Start from 4 to give more forgiveness
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
+      juegoTerminado = true;
+      gameOverReason = 'self';
+      return;
     }
   }
   
-  // Check bache collision with more forgiving distance check
+  // Check bache collision
   for (let bache of baches) {
-    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.8) {
+    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.7) {
       juegoTerminado = true;
       gameOverReason = 'bache';
       return;
