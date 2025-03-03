@@ -15,7 +15,7 @@ let ws;
 let otherPlayers = new Map();
 let myColor;
 let lastUpdateTime = 0;
-const UPDATE_INTERVAL = 50; // Send updates every 50ms
+const UPDATE_INTERVAL = 16; // Increased update frequency (approximately 60fps)
 
 // Darker neighborhood colors for better contrast
 const COLOR_RECOLETA = [200, 200, 210];
@@ -152,6 +152,15 @@ let drinkingStartTime = 0;
 const DRINKING_DURATION = 500; // Animation duration in milliseconds
 let lastCoffeePosition = null;
 
+// Add mobile-specific variables
+let isMobile = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let lastTouchDirection = { x: 0, y: 0 };
+let swipeThreshold = 30;
+let virtualJoystick = { x: 0, y: 0, active: false };
+let controlSize = 60;
+
 // P5.js Preload Function
 function preload() {
   try {
@@ -192,6 +201,15 @@ function setup() {
   ellipseMode(CENTER);
   imageMode(CENTER);
   
+  // Detect if on mobile
+  isMobile = detectMobile();
+  
+  // Adjust swipe threshold based on screen size
+  swipeThreshold = min(width, height) * 0.05;
+  
+  // Initialize mobile control events
+  setupMobileControls();
+  
   // Initialize particles
   for (let i = 0; i < NUM_PARTICLES; i++) {
     particles.push({
@@ -215,389 +233,141 @@ function setup() {
   }
 }
 
-// Window resize handler
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  // Update star positions for new window size
-  for (let star of stars) {
-    star.x = random(width);
-    star.y = random(height);
+// Add function to detect mobile devices
+function detectMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+}
+
+// Add function to set up mobile controls
+function setupMobileControls() {
+  // Set up touch controls for the game canvas
+  document.addEventListener('touchstart', handleTouchStart, false);
+  document.addEventListener('touchmove', handleTouchMove, false);
+  document.addEventListener('touchend', handleTouchEnd, false);
+  
+  // Set up on-screen button controls
+  const btnUp = document.getElementById('btn-up');
+  const btnDown = document.getElementById('btn-down');
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  
+  if (btnUp) {
+    btnUp.addEventListener('touchstart', () => {
+      if (direction.y >= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: 0, y: -MOVE_SPEED};
+      }
+    });
+  }
+  
+  if (btnDown) {
+    btnDown.addEventListener('touchstart', () => {
+      if (direction.y <= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: 0, y: MOVE_SPEED};
+      }
+    });
+  }
+  
+  if (btnLeft) {
+    btnLeft.addEventListener('touchstart', () => {
+      if (direction.x >= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: -MOVE_SPEED, y: 0};
+      }
+    });
+  }
+  
+  if (btnRight) {
+    btnRight.addEventListener('touchstart', () => {
+      if (direction.x <= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: MOVE_SPEED, y: 0};
+      }
+    });
   }
 }
 
-// P5.js Draw Function
-function draw() {
-  // Draw space background
-  drawSpaceBackground();
-
+// Add touch event handlers
+function handleTouchStart(event) {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+  
+  // Handle modal interactions
   if (ingresandoNombre) {
-    dibujarModalNombre();
-  } else if (juegoTerminado) {
-    dibujarModalGameOver();
-  } else {
-    jugar();
-  }
-}
-
-function dibujarTablero() {
-  // Draw game elements
-  dibujarViborita();
-  dibujarCafes();
-  dibujarBaches();
-  dibujarPuntaje();
-  dibujarNombre();
-}
-
-// Draw the name input modal
-function dibujarModalNombre() {
-  // Create a dynamic backdrop with a subtle gradient
-  background(20, 20, 30);
-  
-  // Calculate responsive modal size based on window dimensions
-  let modalWidth = min(550, width * 0.8);
-  let modalHeight = min(480, height * 0.75); // Increased modal height for better spacing
-  
-  // Add subtle animation to the background
-  for (let i = 0; i < 20; i++) {
-    let size = random(2, 6);
-    let alpha = random(50, 150);
-    fill(255, 255, 255, alpha);
-    noStroke();
-    ellipse(random(width), random(height), size, size);
-  }
-  
-  // Drop shadow effect for the modal (multiple layers with decreasing opacity)
-  for (let i = 5; i > 0; i--) {
-    fill(0, 0, 0, 15);
-    rect(width/2, height/2 + i, modalWidth + i*2, modalHeight + i*2, 20);
-  }
-  
-  // Modal background with rounded corners
-  fill(COLOR_MODAL_BG);
-  rect(width/2, height/2, modalWidth, modalHeight, 20);
-  
-  // Decorative header bar with gradient effect
-  let headerHeight = 60;
-  for (let i = 0; i < headerHeight; i++) {
-    let inter = map(i, 0, headerHeight, 0, 1);
-    let c = lerpColor(
-      color(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2]), 
-      color(COLOR_BUTTON_HOVER[0], COLOR_BUTTON_HOVER[1], COLOR_BUTTON_HOVER[2]), 
-      inter
-    );
-    fill(c);
-    rect(width/2, height/2 - modalHeight/2 + i/2, modalWidth, 1);
-  }
-  
-  // Calculate vertical positions for better spacing
-  let titleY = height/2 - modalHeight/2 + headerHeight + 50;
-  let subtitleY = titleY + 45;
-  let labelY = subtitleY + 80;
-  let inputY = labelY + 45;
-  let buttonY = inputY + 80;
-  let instructionsY = buttonY + 45;
-  
-  // Draw coffee icons if the image is loaded (fallback to draw function if not)
-  let cupSize = 55; // Reducido ligeramente de 60 a 55 para mejor proporción
-  let cupSpacing = modalWidth * 0.42; // Aumentado para mayor separación
-  
-  // Use try/catch in case the image fails to load
-  try {
-    if (cafeIcon) {
-      // Left coffee cup
-      push();
-      imageMode(CENTER);
-      translate(width/2 - cupSpacing, titleY);
-      rotate(sin(frameCount * 0.02) * 0.05);
-      image(cafeIcon, 0, 0, cupSize, cupSize);
-      pop();
+    // Check if the user is tapping on the input field
+    let modalWidth = min(550, width * 0.8);
+    let inputWidth = modalWidth * 0.7;
+    let inputHeight = 60;
     
-      // Right coffee cup
-      push();
-      imageMode(CENTER);
-      translate(width/2 + cupSpacing, titleY);
-      rotate(sin(frameCount * 0.02 + PI) * 0.05);
-      image(cafeIcon, 0, 0, cupSize, cupSize);
-      pop();
-    }
-  } catch (e) {
-    // Fallback to drawn coffee cup if image fails
-    push();
-    translate(width/2 - cupSpacing, titleY);
-    rotate(sin(frameCount * 0.02) * 0.05);
-    drawCoffeeCup(0, 0, cupSize);
-    pop();
+    // Calculate vertical positions for consistent spacing
+    let titleY = height/2 - min(480, height * 0.75)/2 + 60 + 50;
+    let subtitleY = titleY + 45;
+    let labelY = subtitleY + 80;
+    let inputY = labelY + 45;
     
-    push();
-    translate(width/2 + cupSpacing, titleY);
-    rotate(sin(frameCount * 0.02 + PI) * 0.05);
-    drawCoffeeCup(0, 0, cupSize);
-    pop();
-  }
-  
-  // Title with shadow effect - positioned between coffee cups
-  textAlign(CENTER, CENTER);
-  // Shadow
-  fill(0, 0, 0, 100);
-  textSize(36);
-  textStyle(BOLD);
-  text("VIBORITA INDIE BA", width/2 + 2, titleY + 2);
-  // Text
-  fill(255);
-  text("VIBORITA INDIE BA", width/2, titleY);
-  
-  // Subtitle with improved spacing
-  textSize(18);
-  textStyle(NORMAL);
-  fill(220);
-  text("Una viborita también quiere tomar un cafecito porteño", width/2, subtitleY);
-  
-  // Label with better positioning and spacing
-  textSize(18);
-  fill(200);
-  textStyle(BOLD);
-  text("¿CÓMO TE LLAMÁS?", width/2, labelY);
-  
-  // Input field with improved styling and size
-  let inputWidth = modalWidth * 0.7;
-  let inputHeight = 55;
-  
-  // Input field border glow effect
-  fill(40, 40, 50);
-  if (frameCount % 120 < 60) {
-    stroke(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2], 100);
-    strokeWeight(2);
-  } else {
-    noStroke();
-  }
-  rect(width/2, inputY, inputWidth, inputHeight, 28);
-  noStroke();
-  
-  // Input text with animated cursor - centered in the input field
-  fill(255);
-  textSize(22);
-  textAlign(CENTER, CENTER);
-  text(textoNombre + (frameCount % 30 < 15 ? "|" : ""), width/2, inputY);
-  
-  // Button with improved styling and positioning
-  if (textoNombre.length > 0) {
-    let buttonX = width/2;
-    let buttonWidth = inputWidth * 0.6;
-    let buttonHeight = 55;
+    let inputX = width/2;
     
-    // Check if mouse is over button
-    let mouseOverButton = mouseX > buttonX - buttonWidth/2 && 
-                          mouseX < buttonX + buttonWidth/2 && 
-                          mouseY > buttonY - buttonHeight/2 && 
-                          mouseY < buttonY + buttonHeight/2;
-    
-    // Button shadow for depth
-    if (mouseOverButton) {
-      for (let i = 3; i > 0; i--) {
-        fill(0, 0, 0, 10);
-        rect(buttonX, buttonY + i, buttonWidth + i, buttonHeight, 28);
+    if (touchStartX > inputX - inputWidth/2 && 
+        touchStartX < inputX + inputWidth/2 && 
+        touchStartY > inputY - inputHeight/2 && 
+        touchStartY < inputY + inputHeight/2) {
+      // Show the virtual keyboard for name input on mobile
+      if (isMobile) {
+        let nameInput = prompt("Ingresa tu nombre:", textoNombre);
+        if (nameInput !== null) {
+          textoNombre = nameInput.substring(0, 15); // Limit to 15 characters
+          if (textoNombre.length > 0) {
+            nombreJugador = textoNombre;
+            ingresandoNombre = false;
+            iniciarJuego();
+          }
+        }
+        event.preventDefault();
       }
     }
-    
-    // Button background with gradient effect
-    if (mouseOverButton) {
-      // Gradient effect on hover
-      for (let i = 0; i < buttonHeight; i++) {
-        let inter = map(i, 0, buttonHeight, 0, 1);
-        let c = lerpColor(
-          color(COLOR_BUTTON_HOVER[0], COLOR_BUTTON_HOVER[1], COLOR_BUTTON_HOVER[2]), 
-          color(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2]), 
-          inter
-        );
-        fill(c);
-        rect(buttonX, buttonY - buttonHeight/2 + i, buttonWidth, 1);
+  }
+}
+
+function handleTouchMove(event) {
+  if (ingresandoNombre || juegoTerminado) return;
+  
+  const touchX = event.touches[0].clientX;
+  const touchY = event.touches[0].clientY;
+  
+  // Calculate swipe direction
+  const dx = touchX - touchStartX;
+  const dy = touchY - touchStartY;
+  
+  // Only process swipe if it's significant
+  if (Math.abs(dx) > swipeThreshold || Math.abs(dy) > swipeThreshold) {
+    // Determine primary direction
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal swipe
+      if (dx > 0 && direction.x >= 0) {
+        direction = {x: MOVE_SPEED, y: 0};
+      } else if (dx < 0 && direction.x <= 0) {
+        direction = {x: -MOVE_SPEED, y: 0};
       }
     } else {
-      fill(COLOR_BUTTON);
-      rect(buttonX, buttonY, buttonWidth, buttonHeight, 28);
+      // Vertical swipe
+      if (dy > 0 && direction.y >= 0) {
+        direction = {x: 0, y: MOVE_SPEED};
+      } else if (dy < 0 && direction.y <= 0) {
+        direction = {x: 0, y: -MOVE_SPEED};
+      }
     }
     
-    // Button text
-    fill(255);
-    textSize(20);
-    textStyle(BOLD);
-    text("COMENZAR", buttonX, buttonY);
-    
-    // Button icon (arrow)
-    let arrowX = buttonX + buttonWidth/2 - 30;
-    let arrowY = buttonY;
-    fill(255);
-    triangle(
-      arrowX - 10, arrowY - 5,
-      arrowX - 10, arrowY + 5,
-      arrowX, arrowY
-    );
-    
-    // Instructions with better positioning
-    textSize(14);
-    textStyle(NORMAL);
-    fill(180);
-    text("Presiona ENTER para comenzar", width/2, instructionsY);
+    // Reset touch start position to allow for continuous swiping
+    touchStartX = touchX;
+    touchStartY = touchY;
   }
+  
+  // Prevent default behavior like scrolling
+  event.preventDefault();
 }
 
-// Draw the game over modal
-function dibujarModalGameOver() {
-  // Semi-transparent dark backdrop with animation
-  rectMode(CORNER);
-  fill(0, 0, 0, 150);
-  rect(0, 0, width, height);
-  
-  // Add subtle particles in the background
-  for (let i = 0; i < 15; i++) {
-    let size = random(2, 5);
-    let alpha = random(30, 100);
-    fill(255, 255, 255, alpha);
-    noStroke();
-    ellipse(random(width), random(height), size, size);
-  }
-  
-  // Calculate modal dimensions
-  let modalWidth = 450;
-  let modalHeight = 380;
-  
-  // Modal shadow effect
-  drawingContext.shadowBlur = 30;
-  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.5)';
-  
-  // Modal background with gradient
-  rectMode(CENTER);
-  let gradient = drawingContext.createLinearGradient(
-    width/2 - modalWidth/2, height/2 - modalHeight/2,
-    width/2 + modalWidth/2, height/2 + modalHeight/2
-  );
-  gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
-  gradient.addColorStop(1, 'rgba(25, 25, 35, 0.95)');
-  drawingContext.fillStyle = gradient;
-  rect(width/2, height/2, modalWidth, modalHeight, 20);
-  
-  // Decorative header bar
-  let headerHeight = 60;
-  for (let i = 0; i < headerHeight; i++) {
-    let inter = map(i, 0, headerHeight, 0, 1);
-    let c = lerpColor(
-      color(200, 70, 70, 200),
-      color(150, 50, 50, 200),
-      inter
-    );
-    fill(c);
-    rect(width/2, height/2 - modalHeight/2 + i/2, modalWidth, 1);
-  }
-  
-  // Reset shadow
-  drawingContext.shadowBlur = 0;
-  
-  // Game Over text with glow effect
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
-  textAlign(CENTER, CENTER);
-  textSize(42);
-  textStyle(BOLD);
-  fill(255);
-  text('¡GAME OVER!', width/2, height/2 - modalHeight/2 + headerHeight + 30);
-  
-  // Game over reason with icon
-  drawingContext.shadowBlur = 0;
-  textSize(24);
-  fill(220, 220, 220);
-  textStyle(NORMAL);
-  
-  // Position for the reason text
-  let reasonY = height/2 - 40;
-  
-  if (colisionJugador) {
-    text(`¡Chocaste con ${colisionJugador}!`, width/2, reasonY);
-  } else {
-    switch(gameOverReason) {
-      case 'border':
-        text('¡Te saliste del mapa!', width/2, reasonY);
-        break;
-      case 'self':
-        text('¡Te chocaste con vos mismo!', width/2, reasonY);
-        break;
-      case 'bache':
-        text('¡Caíste en un bache!', width/2, reasonY);
-        break;
-    }
-  }
-  
-  // Score display with enhanced styling
-  let scoreY = height/2 + 30;
-  textSize(20);
-  fill(180, 180, 180);
-  text('PUNTAJE FINAL', width/2, scoreY - 25);
-  
-  textSize(48);
-  textStyle(BOLD);
-  fill(255, 255, 220);
-  text(puntaje, width/2, scoreY + 20);
-  
-  // Restart button with hover effect
-  let buttonY = height/2 + 120;
-  let buttonWidth = 220;
-  let buttonHeight = 50;
-  
-  // Check if mouse is over button
-  let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
-                       mouseX < width/2 + buttonWidth/2 &&
-                       mouseY > buttonY - buttonHeight/2 &&
-                       mouseY < buttonY + buttonHeight/2;
-  
-  // Button shadow and glow
-  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
-  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
-  
-  // Button gradient
-  gradient = drawingContext.createLinearGradient(
-    width/2 - buttonWidth/2, buttonY - buttonHeight/2,
-    width/2 + buttonWidth/2, buttonY + buttonHeight/2
-  );
-  
-  if (mouseOverButton) {
-    gradient.addColorStop(0, 'rgba(70, 140, 220, 1)');
-    gradient.addColorStop(1, 'rgba(50, 120, 200, 1)');
-  } else {
-    gradient.addColorStop(0, 'rgba(50, 120, 200, 1)');
-    gradient.addColorStop(1, 'rgba(40, 100, 180, 1)');
-  }
-  
-  drawingContext.fillStyle = gradient;
-  rect(width/2, buttonY, buttonWidth, buttonHeight, buttonHeight/2);
-  
-  // Button text with shadow
-  fill(255);
-  textSize(20);
-  textStyle(BOLD);
-  text('JUGAR DE NUEVO', width/2, buttonY);
-  
-  // Button icon (restart arrow)
-  push();
-  translate(width/2 + buttonWidth/2 - 35, buttonY);
-  rotate(frameCount * 0.05); // Rotating animation
-  noFill();
-  stroke(255);
-  strokeWeight(2);
-  arc(0, 0, 20, 20, -PI/2, PI);
-  // Arrow head
-  line(4, -5, 10, 0);
-  line(4, 5, 10, 0);
-  pop();
-  
-  // Instructions text
-  textSize(16);
-  textStyle(NORMAL);
-  fill(150, 150, 150);
-  text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 50);
-  
-  drawingContext.shadowBlur = 0;
+function handleTouchEnd(event) {
+  // Nothing special needed on touch end for now
 }
 
-// Handle mouse clicks
+// Add modifications for touch events to the mousePressed function
 function mousePressed() {
   if (ingresandoNombre && textoNombre.length > 0) {
     let modalWidth = min(550, width * 0.8);
@@ -1398,12 +1168,20 @@ function jugar() {
   // Draw space background
   drawSpaceBackground();
   
+  // Clean up inactive players
+  cleanupInactivePlayers();
+  
   // Draw header UI
   drawGameUI();
   
   // Translate everything below the header
   push();
-  translate(0, 60); // Translate by header height
+  // On mobile, translate up to give space for controls at the bottom
+  let translateY = 60;
+  if (isMobile) {
+    translateY = 60 - 75; // Adjust for mobile controls at bottom
+  }
+  translate(0, translateY);
   
   // Move snake and check collisions
   if (direction.x !== 0 || direction.y !== 0) {
@@ -1700,7 +1478,7 @@ function initializeWebSocket(startX, startY) {
   }
 }
 
-// Add function to handle WebSocket messages
+// Update handleWebSocketMessage function to better handle position updates
 function handleWebSocketMessage(data) {
   switch(data.type) {
     case 'gameState':
@@ -1721,6 +1499,21 @@ function handleWebSocketMessage(data) {
       otherPlayers.delete(data.name);
       break;
       
+    case 'update':
+      if (data.name !== nombreJugador) {
+        const existingPlayer = otherPlayers.get(data.name);
+        if (existingPlayer) {
+          otherPlayers.set(data.name, {
+            ...existingPlayer,
+            snake: data.snake,
+            position: data.position,
+            score: data.score,
+            lastUpdate: Date.now()
+          });
+        }
+      }
+      break;
+      
     case 'playerRestart':
       if (data.name !== nombreJugador) {
         otherPlayers.set(data.name, {
@@ -1735,19 +1528,34 @@ function handleWebSocketMessage(data) {
   }
 }
 
-// Add function to send player updates
+// Update sendPlayerUpdate to include more data
 function sendPlayerUpdate(cabeza) {
-  const now = Date.now();
-  if (now - lastUpdateTime > UPDATE_INTERVAL && ws && ws.readyState === WebSocket.OPEN) {
-    lastUpdateTime = now;
-    ws.send(JSON.stringify({
-      type: 'update',
-      name: nombreJugador,
-      position: cabeza,
-      snake: snake,
-      score: puntaje
-    }));
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const now = Date.now();
+    if (now - lastUpdateTime > UPDATE_INTERVAL) {
+      lastUpdateTime = now;
+      ws.send(JSON.stringify({
+        type: 'update',
+        name: nombreJugador,
+        position: cabeza,
+        snake: snake,
+        score: puntaje,
+        direction: direction
+      }));
+    }
   }
+}
+
+// Add cleanup of inactive players
+function cleanupInactivePlayers() {
+  const now = Date.now();
+  const timeout = 5000; // Remove players after 5 seconds of inactivity
+  
+  otherPlayers.forEach((player, name) => {
+    if (now - player.lastUpdate > timeout) {
+      otherPlayers.delete(name);
+    }
+  });
 }
 
 // Helper function to determine neighborhood based on screen position
@@ -1793,5 +1601,22 @@ function verificarColisiones() {
       gameOverReason = 'bache';
       return;
     }
+  }
+}
+
+// Modify window resize to handle orientation changes on mobile
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  
+  // Adjust mobile detection on resize (for orientation changes)
+  isMobile = detectMobile();
+  
+  // Update swipe threshold based on new screen size
+  swipeThreshold = min(width, height) * 0.05;
+  
+  // Update star positions for new window size
+  for (let star of stars) {
+    star.x = random(width);
+    star.y = random(height);
   }
 } 
