@@ -143,6 +143,13 @@ let spaceTransitionProgress = 0;
 let stars = [];
 const NUM_STARS = 200;
 
+// Add new variables for coffee animation
+let drinkingCoffee = false;
+let drinkingAnimation = 0;
+let drinkingStartTime = 0;
+const DRINKING_DURATION = 500; // Animation duration in milliseconds
+let lastCoffeePosition = null;
+
 // P5.js Preload Function
 function preload() {
   try {
@@ -923,11 +930,17 @@ function moverViborita() {
   
   // Check cafe collection with a more forgiving distance
   if (cafe && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE) {
-    puntaje++;
+    // Start drinking animation
+    drinkingCoffee = true;
+    drinkingAnimation = 0;
+    drinkingStartTime = millis();
+    lastCoffeePosition = {x: cafe.x, y: cafe.y};
+    
+    puntaje += 2; // Increased score for coffee collection
     cafe = generarCafe();
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
-    velocidadActual = velocidadInicial * Math.pow(1.05, puntaje); // Reduced growth rate
-    velocidadActual = min(velocidadActual, 20); // Increased max speed
+    velocidadActual = velocidadInicial * Math.pow(1.05, puntaje);
+    velocidadActual = min(velocidadActual, 20);
     frameRate(velocidadActual);
     
     // Add new bache every 3 points
@@ -1000,15 +1013,87 @@ function dibujarViborita() {
   textAlign(CENTER, BOTTOM);
   text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
   
-  // Draw eyes with improved appearance
+  // Draw eyes with improved appearance and drinking animation
   fill(255);
   let eyeSize = 5;
   let eyeOffsetX = direction.x * 3;
   let eyeOffsetY = direction.y * 3;
   
+  if (drinkingCoffee) {
+    // Update drinking animation
+    let elapsed = millis() - drinkingStartTime;
+    drinkingAnimation = elapsed / DRINKING_DURATION;
+    
+    if (drinkingAnimation >= 1) {
+      drinkingCoffee = false;
+    } else {
+      // Happy eyes during drinking
+      let blinkPhase = sin(frameCount * 0.5);
+      eyeSize = map(blinkPhase, -1, 1, 3, 6);
+      
+      // Draw coffee particles and steam effect
+      if (lastCoffeePosition) {
+        drawCoffeeEffect(lastCoffeePosition.x, lastCoffeePosition.y, drinkingAnimation);
+      }
+    }
+  }
+  
   noStroke();
   ellipse(cabeza.x - 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
   ellipse(cabeza.x + 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
+  
+  // Draw happy mouth during drinking
+  if (drinkingCoffee) {
+    stroke(255);
+    strokeWeight(2);
+    noFill();
+    let smileSize = map(drinkingAnimation, 0, 1, 0, 8);
+    arc(cabeza.x, cabeza.y + 2, smileSize, smileSize, 0, PI);
+  }
+}
+
+// Add new function for coffee drinking effect
+function drawCoffeeEffect(x, y, progress) {
+  let numParticles = 8;
+  let maxRadius = SNAKE_SIZE * 2;
+  
+  push();
+  translate(x, y);
+  
+  // Draw expanding circle
+  noFill();
+  stroke(COLOR_CAFE[0], COLOR_CAFE[1], COLOR_CAFE[2], 255 * (1 - progress));
+  strokeWeight(2);
+  let radius = map(progress, 0, 1, 0, maxRadius);
+  ellipse(0, 0, radius * 2);
+  
+  // Draw particles
+  noStroke();
+  fill(COLOR_CAFE[0], COLOR_CAFE[1], COLOR_CAFE[2], 255 * (1 - progress));
+  for (let i = 0; i < numParticles; i++) {
+    let angle = TWO_PI * i / numParticles;
+    let r = radius * 0.8;
+    let px = cos(angle) * r;
+    let py = sin(angle) * r;
+    let size = map(progress, 0, 1, 4, 0);
+    ellipse(px, py, size, size);
+  }
+  
+  // Draw steam effect
+  stroke(255, 255, 255, 100 * (1 - progress));
+  strokeWeight(1);
+  for (let i = 0; i < 3; i++) {
+    let steamX = (i - 1) * 10;
+    let waveOffset = sin(frameCount * 0.1 + i) * 5;
+    let steamHeight = map(progress, 0, 1, 0, -20);
+    beginShape();
+    vertex(steamX, 0);
+    vertex(steamX + waveOffset, steamHeight * 0.5);
+    vertex(steamX - waveOffset, steamHeight);
+    endShape();
+  }
+  
+  pop();
 }
 
 // Generate a new café at a random unoccupied position
