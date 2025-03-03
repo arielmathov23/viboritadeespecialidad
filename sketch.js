@@ -116,10 +116,33 @@ const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/playlist/64sMCJNA9dqrK
 
 // P5.js Preload Function
 function preload() {
-  // Load coffee icon image
-  cafeIcon = loadImage('assets/iconcafe.png');
-  // Load pothole icon image
-  bacheIcon = loadImage('assets/bache.png');
+  try {
+    // Load coffee icon image with absolute path
+    cafeIcon = loadImage(window.location.origin + '/assets/iconcafe.png', 
+      // Success callback
+      () => console.log('Coffee icon loaded successfully'),
+      // Error callback
+      () => {
+        console.warn('Failed to load coffee icon, will use fallback');
+        cafeIcon = null;
+      }
+    );
+    
+    // Load pothole icon image with absolute path
+    bacheIcon = loadImage(window.location.origin + '/assets/bache.png',
+      // Success callback
+      () => console.log('Bache icon loaded successfully'),
+      // Error callback
+      () => {
+        console.warn('Failed to load bache icon, will use fallback');
+        bacheIcon = null;
+      }
+    );
+  } catch (error) {
+    console.error('Error in preload:', error);
+    cafeIcon = null;
+    bacheIcon = null;
+  }
 }
 
 // P5.js Setup Function
@@ -593,72 +616,6 @@ function iniciarJuego() {
   // Initialize Spotify player
   initSpotifyPlayer();
   
-  // Initialize WebSocket connection with error handling
-  const connectWebSocket = () => {
-    ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}`);
-    
-    ws.onopen = () => {
-      console.log('Connected to game server');
-      // Send initial join message with player info
-      ws.send(JSON.stringify({
-        type: 'join',
-        name: nombreJugador,
-        position: {x: Math.floor(random(GRILLA_ANCHO)), y: Math.floor(random(GRILLA_ALTO))}, // Random starting position
-        snake: viborita,
-        score: puntaje
-      }));
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      switch(data.type) {
-        case 'gameState':
-          // Update other players
-          otherPlayers.clear();
-          data.players.forEach(player => {
-            if (player.name !== nombreJugador) {
-              otherPlayers.set(player.name, {
-                ...player,
-                lastUpdate: Date.now()
-              });
-            } else {
-              myColor = player.color;
-            }
-          });
-          break;
-          
-        case 'playerLeft':
-          otherPlayers.delete(data.name);
-          break;
-          
-        case 'playerRestart':
-          if (data.name !== nombreJugador) {
-            otherPlayers.set(data.name, {
-              name: data.name,
-              snake: [{x: data.position.x, y: data.position.y}],
-              color: data.color,
-              score: 0,
-              lastUpdate: Date.now()
-            });
-          }
-          break;
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    ws.onclose = (event) => {
-      console.log('WebSocket connection closed:', event.code, event.reason);
-      setTimeout(connectWebSocket, 3000);
-    };
-  };
-  
-  // Start WebSocket connection
-  connectWebSocket();
-  
   // Initialize local game state with random starting position
   const startX = Math.floor(random(GRILLA_ANCHO));
   const startY = Math.floor(random(GRILLA_ALTO));
@@ -676,6 +633,77 @@ function iniciarJuego() {
   juegoTerminado = false;
   velocidadActual = velocidadInicial;
   frameRate(velocidadActual);
+  
+  // Try to initialize WebSocket connection
+  try {
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port}`);
+      
+      ws.onopen = () => {
+        console.log('Connected to game server');
+        // Send initial join message with player info
+        ws.send(JSON.stringify({
+          type: 'join',
+          name: nombreJugador,
+          position: {x: startX, y: startY},
+          snake: viborita,
+          score: puntaje
+        }));
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        switch(data.type) {
+          case 'gameState':
+            // Update other players
+            otherPlayers.clear();
+            data.players.forEach(player => {
+              if (player.name !== nombreJugador) {
+                otherPlayers.set(player.name, {
+                  ...player,
+                  lastUpdate: Date.now()
+                });
+              } else {
+                myColor = player.color;
+              }
+            });
+            break;
+            
+          case 'playerLeft':
+            otherPlayers.delete(data.name);
+            break;
+            
+          case 'playerRestart':
+            if (data.name !== nombreJugador) {
+              otherPlayers.set(data.name, {
+                name: data.name,
+                snake: [{x: data.position.x, y: data.position.y}],
+                color: data.color,
+                score: 0,
+                lastUpdate: Date.now()
+              });
+            }
+            break;
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      ws.onclose = (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason);
+        setTimeout(connectWebSocket, 3000);
+      };
+    };
+    
+    // Start WebSocket connection
+    connectWebSocket();
+  } catch (error) {
+    console.error('Failed to initialize WebSocket:', error);
+  }
   
   loop();
 }
