@@ -114,6 +114,19 @@ let currentNeighborhood = '';
 let isPlaying = true; // Start with music playing
 const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/playlist/64sMCJNA9dqrKOS0sYVf8S?utm_source=generator&autoplay=1";
 
+// Add these variables at the top with other constants
+const NUM_BACHES = 15; // Increased number of baches
+const BACKGROUND_COLORS = [
+  [200, 200, 200], // Default gray
+  [173, 216, 230], // Light blue
+  [144, 238, 144], // Light green
+  [255, 182, 193], // Light pink
+  [255, 218, 185], // Peach
+  [221, 160, 221]  // Plum
+];
+let currentBackgroundIndex = 0;
+let backgroundTransitionProgress = 0;
+
 // P5.js Preload Function
 function preload() {
   try {
@@ -173,6 +186,24 @@ function windowResized() {
 
 // P5.js Draw Function
 function draw() {
+  // Set background color based on score
+  let targetBackgroundIndex = Math.floor(puntaje / 10) % BACKGROUND_COLORS.length;
+  if (targetBackgroundIndex !== currentBackgroundIndex) {
+    backgroundTransitionProgress += 0.02;
+    if (backgroundTransitionProgress >= 1) {
+      currentBackgroundIndex = targetBackgroundIndex;
+      backgroundTransitionProgress = 0;
+    }
+  }
+
+  // Interpolate between current and next background color
+  let currentColor = BACKGROUND_COLORS[currentBackgroundIndex];
+  let nextColor = BACKGROUND_COLORS[(currentBackgroundIndex + 1) % BACKGROUND_COLORS.length];
+  let r = lerp(currentColor[0], nextColor[0], backgroundTransitionProgress);
+  let g = lerp(currentColor[1], nextColor[1], backgroundTransitionProgress);
+  let b = lerp(currentColor[2], nextColor[2], backgroundTransitionProgress);
+  background(r, g, b);
+
   if (ingresandoNombre) {
     dibujarModalNombre();
   } else if (juegoTerminado) {
@@ -180,6 +211,15 @@ function draw() {
   } else {
     jugar();
   }
+}
+
+function dibujarTablero() {
+  // Draw game elements
+  dibujarViborita();
+  dibujarCafes();
+  dibujarBaches();
+  dibujarPuntaje();
+  dibujarNombre();
 }
 
 // Draw the name input modal
@@ -646,7 +686,7 @@ function iniciarJuego() {
   try {
     const connectWebSocket = () => {
       // Connect to dedicated WebSocket server
-      ws = new WebSocket('wss://smoggy-cooperative-carrot.glitch.me');
+      ws = new WebSocket('wss://evening-peridot-screw.glitch.me');
       
       ws.onopen = () => {
         console.log('Connected to game server');
@@ -1355,37 +1395,15 @@ function dibujarMusicControl() {
 
 // Main game loop and UI
 function jugar() {
-  dibujarMapaBarrios();
   moverViborita();
-  
-  let cabeza = viborita[0];
-  
-  // Check different types of collisions
-  if (cabeza.x < 0 || cabeza.x >= GRILLA_ANCHO || cabeza.y < 0 || cabeza.y >= GRILLA_ALTO) {
-    juegoTerminado = true;
-    gameOverReason = 'border';
-    return;
-  }
-  
-  // Check self collision
-  if (viborita.slice(1).some(seg => seg.x === cabeza.x && seg.y === cabeza.y)) {
-    juegoTerminado = true;
-    gameOverReason = 'self';
-    return;
-  }
-  
-  // Check bache collision - Fixed collision check
-  if (baches.some(bache => bache.x === cabeza.x && bache.y === cabeza.y)) {
-    juegoTerminado = true;
-    gameOverReason = 'bache';
-    return;
-  }
-  
-  dibujarBaches();
-  dibujarCafe();
   dibujarViborita();
-  drawGameUI();
-  dibujarMusicControl();
+  dibujarCafes();
+  dibujarBaches();
+  dibujarPuntaje();
+  dibujarNombre();
+  
+  // Check collisions
+  verificarColisiones();
 }
 
 // Draw the game UI with player name and score
@@ -1459,5 +1477,31 @@ function getNeighborhoodFromPosition(x, y) {
     return y < GRILLA_ALTO/2 ? 'RECOLETA' : 'COLEGIALES';
   } else {
     return y < GRILLA_ALTO/2 ? 'PALERMO' : 'CHACARITA';
+  }
+}
+
+// Add new function to check for collisions
+function verificarColisiones() {
+  let cabeza = viborita[0];
+  
+  // Check different types of collisions
+  if (cabeza.x < 0 || cabeza.x >= GRILLA_ANCHO || cabeza.y < 0 || cabeza.y >= GRILLA_ALTO) {
+    juegoTerminado = true;
+    gameOverReason = 'border';
+    return;
+  }
+  
+  // Check self collision
+  if (viborita.slice(1).some(seg => seg.x === cabeza.x && seg.y === cabeza.y)) {
+    juegoTerminado = true;
+    gameOverReason = 'self';
+    return;
+  }
+  
+  // Check bache collision - Fixed collision check
+  if (baches.some(bache => bache.x === cabeza.x && bache.y === cabeza.y)) {
+    juegoTerminado = true;
+    gameOverReason = 'bache';
+    return;
   }
 } 
