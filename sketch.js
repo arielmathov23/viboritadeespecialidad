@@ -2,9 +2,9 @@
 // This file contains the game logic for the snake-like game set in Buenos Aires
 
 // Game Constants
-const TAMANIO_CUADRA = 30;
-const GRILLA_ANCHO = 20;
-const GRILLA_ALTO = 20;
+const TAMANIO_CUADRA = 20;
+const GRILLA_ANCHO = 30;
+const GRILLA_ALTO = 30;
 const VENTANA_ANCHO = TAMANIO_CUADRA * GRILLA_ANCHO; // 600
 const VENTANA_ALTO = TAMANIO_CUADRA * GRILLA_ALTO;   // 600
 
@@ -354,55 +354,158 @@ function dibujarModalNombre() {
 
 // Draw the game over modal
 function dibujarModalGameOver() {
-  // Semi-transparent background
+  // Semi-transparent dark backdrop with animation
   rectMode(CORNER);
   fill(0, 0, 0, 150);
   rect(0, 0, width, height);
   
-  // Modal background
+  // Add subtle particles in the background
+  for (let i = 0; i < 15; i++) {
+    let size = random(2, 5);
+    let alpha = random(30, 100);
+    fill(255, 255, 255, alpha);
+    noStroke();
+    ellipse(random(width), random(height), size, size);
+  }
+  
+  // Calculate modal dimensions
+  let modalWidth = 450;
+  let modalHeight = 380;
+  
+  // Modal shadow effect
+  drawingContext.shadowBlur = 30;
+  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  
+  // Modal background with gradient
   rectMode(CENTER);
-  fill(COLOR_RECOLETA);
-  rect(width/2, height/2, 400, 300, 20);
+  let gradient = drawingContext.createLinearGradient(
+    width/2 - modalWidth/2, height/2 - modalHeight/2,
+    width/2 + modalWidth/2, height/2 + modalHeight/2
+  );
+  gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
+  gradient.addColorStop(1, 'rgba(25, 25, 35, 0.95)');
+  drawingContext.fillStyle = gradient;
+  rect(width/2, height/2, modalWidth, modalHeight, 20);
   
-  // Game Over text
+  // Decorative header bar
+  let headerHeight = 60;
+  for (let i = 0; i < headerHeight; i++) {
+    let inter = map(i, 0, headerHeight, 0, 1);
+    let c = lerpColor(
+      color(200, 70, 70, 200),
+      color(150, 50, 50, 200),
+      inter
+    );
+    fill(c);
+    rect(width/2, height/2 - modalHeight/2 + i/2, modalWidth, 1);
+  }
+  
+  // Reset shadow
+  drawingContext.shadowBlur = 0;
+  
+  // Game Over text with glow effect
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
   textAlign(CENTER, CENTER);
-  textSize(32);
-  fill(COLOR_CAFE_OSCURO);
-  text('¡GAME OVER!', width/2, height/2 - 80);
+  textSize(42);
+  textStyle(BOLD);
+  fill(255);
+  text('¡GAME OVER!', width/2, height/2 - modalHeight/2 + headerHeight + 30);
   
-  // Different messages based on game over reason
+  // Game over reason with icon
+  drawingContext.shadowBlur = 0;
   textSize(24);
-  fill(COLOR_CAFE_OSCURO);
+  fill(220, 220, 220);
+  textStyle(NORMAL);
+  
+  // Position for the reason text
+  let reasonY = height/2 - 40;
   
   if (colisionJugador) {
-    text(`¡Chocaste con ${colisionJugador}!`, width/2, height/2 - 20);
+    text(`¡Chocaste con ${colisionJugador}!`, width/2, reasonY);
   } else {
     switch(gameOverReason) {
       case 'border':
-        text('¡Te saliste del mapa!', width/2, height/2 - 20);
+        text('¡Te saliste del mapa!', width/2, reasonY);
         break;
       case 'self':
-        text('¡Te chocaste con vos mismo!', width/2, height/2 - 20);
+        text('¡Te chocaste con vos mismo!', width/2, reasonY);
         break;
       case 'bache':
-        text('¡Caíste en un bache!', width/2, height/2 - 20);
+        text('¡Caíste en un bache!', width/2, reasonY);
         break;
     }
   }
   
-  // Score text
-  text(`Puntaje final: ${puntaje}`, width/2, height/2 + 20);
+  // Score display with enhanced styling
+  let scoreY = height/2 + 30;
+  textSize(20);
+  fill(180, 180, 180);
+  text('PUNTAJE FINAL', width/2, scoreY - 25);
   
-  // Restart instructions
-  textSize(16);
-  text('Presioná ENTER para jugar de nuevo', width/2, height/2 + 80);
+  textSize(48);
+  textStyle(BOLD);
+  fill(255, 255, 220);
+  text(puntaje, width/2, scoreY + 20);
   
-  // Draw restart button
-  fill(COLOR_CAFE_OSCURO);
-  rect(width/2, height/2 + 120, 200, 40, 10);
+  // Restart button with hover effect
+  let buttonY = height/2 + 120;
+  let buttonWidth = 220;
+  let buttonHeight = 50;
+  
+  // Check if mouse is over button
+  let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
+                       mouseX < width/2 + buttonWidth/2 &&
+                       mouseY > buttonY - buttonHeight/2 &&
+                       mouseY < buttonY + buttonHeight/2;
+  
+  // Button shadow and glow
+  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
+  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
+  
+  // Button gradient
+  gradient = drawingContext.createLinearGradient(
+    width/2 - buttonWidth/2, buttonY - buttonHeight/2,
+    width/2 + buttonWidth/2, buttonY + buttonHeight/2
+  );
+  
+  if (mouseOverButton) {
+    gradient.addColorStop(0, 'rgba(70, 140, 220, 1)');
+    gradient.addColorStop(1, 'rgba(50, 120, 200, 1)');
+  } else {
+    gradient.addColorStop(0, 'rgba(50, 120, 200, 1)');
+    gradient.addColorStop(1, 'rgba(40, 100, 180, 1)');
+  }
+  
+  drawingContext.fillStyle = gradient;
+  rect(width/2, buttonY, buttonWidth, buttonHeight, buttonHeight/2);
+  
+  // Button text with shadow
   fill(255);
+  textSize(20);
+  textStyle(BOLD);
+  text('JUGAR DE NUEVO', width/2, buttonY);
+  
+  // Button icon (restart arrow)
+  push();
+  translate(width/2 + buttonWidth/2 - 35, buttonY);
+  rotate(frameCount * 0.05); // Rotating animation
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  arc(0, 0, 20, 20, -PI/2, PI);
+  // Arrow head
+  line(4, -5, 10, 0);
+  line(4, 5, 10, 0);
+  pop();
+  
+  // Instructions text
   textSize(16);
-  text('REINICIAR', width/2, height/2 + 120);
+  textStyle(NORMAL);
+  fill(150, 150, 150);
+  text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 50);
+  
+  drawingContext.shadowBlur = 0;
 }
 
 // Handle mouse clicks
@@ -496,29 +599,50 @@ function iniciarJuego() {
     
     ws.onopen = () => {
       console.log('Connected to game server');
+      // Send initial join message with player info
       ws.send(JSON.stringify({
         type: 'join',
         name: nombreJugador,
-        position: {x: 10, y: 10},
-        snake: viborita
+        position: {x: Math.floor(random(GRILLA_ANCHO)), y: Math.floor(random(GRILLA_ALTO))}, // Random starting position
+        snake: viborita,
+        score: puntaje
       }));
     };
     
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'gameState') {
-        // Update other players
-        otherPlayers.clear();
-        data.players.forEach(player => {
-          if (player.name !== nombreJugador) {
-            otherPlayers.set(player.name, player);
-          } else {
-            myColor = player.color;
+      switch(data.type) {
+        case 'gameState':
+          // Update other players
+          otherPlayers.clear();
+          data.players.forEach(player => {
+            if (player.name !== nombreJugador) {
+              otherPlayers.set(player.name, {
+                ...player,
+                lastUpdate: Date.now()
+              });
+            } else {
+              myColor = player.color;
+            }
+          });
+          break;
+          
+        case 'playerLeft':
+          otherPlayers.delete(data.name);
+          break;
+          
+        case 'playerRestart':
+          if (data.name !== nombreJugador) {
+            otherPlayers.set(data.name, {
+              name: data.name,
+              snake: [{x: data.position.x, y: data.position.y}],
+              color: data.color,
+              score: 0,
+              lastUpdate: Date.now()
+            });
           }
-        });
-      } else if (data.type === 'playerLeft') {
-        otherPlayers.delete(data.playerId);
+          break;
       }
     };
     
@@ -528,7 +652,6 @@ function iniciarJuego() {
     
     ws.onclose = (event) => {
       console.log('WebSocket connection closed:', event.code, event.reason);
-      // Attempt to reconnect after a delay
       setTimeout(connectWebSocket, 3000);
     };
   };
@@ -536,12 +659,15 @@ function iniciarJuego() {
   // Start WebSocket connection
   connectWebSocket();
   
-  // Initialize local game state
-  viborita = [{x: 10, y: 10}];
+  // Initialize local game state with random starting position
+  const startX = Math.floor(random(GRILLA_ANCHO));
+  const startY = Math.floor(random(GRILLA_ALTO));
+  viborita = [{x: startX, y: startY}];
   direccion = {x: 1, y: 0};
   baches = [];
   cafe = generarCafe();
   cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
+  
   // Start with just 2 baches
   for (let i = 0; i < 2; i++) {
     baches.push(generarBache());
@@ -556,8 +682,12 @@ function iniciarJuego() {
 
 // Restart the game after game over
 function reiniciarJuego() {
+  // Generate random starting position
+  const startX = Math.floor(random(GRILLA_ANCHO));
+  const startY = Math.floor(random(GRILLA_ALTO));
+  
   // Reset game state
-  viborita = [{x: 5, y: 5}];
+  viborita = [{x: startX, y: startY}];
   direccion = {x: 0, y: 0};
   cafe = generarCafe();
   baches = [];
@@ -572,15 +702,13 @@ function reiniciarJuego() {
   velocidadActual = velocidadInicial;
   frameRate(velocidadActual);
   
-  // Reset multiplayer state
-  otherPlayers.clear();
-  lastUpdateTime = millis();
-  
-  // Notify server of restart
+  // Notify server of restart with new position
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({
       type: 'restart',
-      name: nombreJugador
+      name: nombreJugador,
+      position: {x: startX, y: startY},
+      color: myColor
     }));
   }
 }
@@ -743,14 +871,23 @@ function drawNeighborhoodLabel(name, x, y) {
 function moverViborita() {
   let cabeza = {x: viborita[0].x + direccion.x, y: viborita[0].y + direccion.y};
   
-  // Check collision with other players
+  // Check collision with other players with improved collision detection
   let collidedPlayer = null;
   otherPlayers.forEach((player, playerName) => {
     if (player.snake) {
-      for (let segment of player.snake) {
-        if (cabeza.x === segment.x && cabeza.y === segment.y) {
+      // Check head-to-head collision
+      if (player.snake[0] && 
+          cabeza.x === player.snake[0].x && 
+          cabeza.y === player.snake[0].y) {
+        collidedPlayer = playerName;
+        return;
+      }
+      // Check collision with other player's body
+      for (let i = 1; i < player.snake.length; i++) {
+        if (cabeza.x === player.snake[i].x && 
+            cabeza.y === player.snake[i].y) {
           collidedPlayer = playerName;
-          break;
+          return;
         }
       }
     }
@@ -767,49 +904,39 @@ function moverViborita() {
     puntaje++;
     cafe = generarCafe();
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
-    
-    // More gradual speed increase with each café collected
     velocidadActual = velocidadInicial * Math.pow(1.1, puntaje);
-    // Cap the maximum speed at 15
     velocidadActual = min(velocidadActual, 15);
     frameRate(velocidadActual);
-  } else {
-    viborita.pop();
-  }
-  
-  // Progressive random bache generation based on score
-  if (frameCount % 60 === 0) { // Check every second
-    // Base probability increases with score, starting higher
-    let baseProb = map(puntaje, 0, 20, 0.4, 0.9); // Increased probabilities (was 0.3, 0.8)
-    baseProb = min(baseProb, 0.9); // Higher cap (was 0.8)
     
-    // Add randomness factor
-    let randomFactor = random(0, 0.3); // Increased random factor (was 0.2)
-    let finalProb = baseProb + randomFactor;
+    // Increase chance of generating baches after eating cafe
+    let baseProbability = map(puntaje, 0, 20, 0.4, 0.9); // 40% to 90% chance
+    let speedFactor = map(velocidadActual, velocidadInicial, 15, 0, 0.3); // Up to 30% additional chance based on speed
+    let shouldGenerateBache = random() < (baseProbability + speedFactor);
     
-    // Maximum baches scales with score and speed
-    let maxBaches = floor(map(velocidadActual, velocidadInicial, 15, 8, GRILLA_ANCHO * GRILLA_ALTO * 0.35));
-    maxBaches = constrain(maxBaches, 8, GRILLA_ANCHO * GRILLA_ALTO * 0.35);
-    
-    // Try to add multiple baches based on speed
-    let bachesToAdd = floor(map(velocidadActual, velocidadInicial, 15, 1, 3));
-    for(let i = 0; i < bachesToAdd; i++) {
-      if (random() < finalProb && baches.length < maxBaches) {
+    if (shouldGenerateBache) {
+      // Calculate how many baches to add based on speed and score
+      let maxNewBaches = floor(map(velocidadActual, velocidadInicial, 15, 1, 3));
+      let numNewBaches = floor(random(1, maxNewBaches + 1));
+      
+      for (let i = 0; i < numNewBaches; i++) {
         let newBache = generarBache();
         if (newBache) {
           baches.push(newBache);
         }
       }
     }
+  } else {
+    viborita.pop();
   }
   
-  // Send position update to server
-  const now = millis();
+  // Send more frequent updates for smoother multiplayer
+  const now = Date.now();
   if (now - lastUpdateTime > UPDATE_INTERVAL) {
     lastUpdateTime = now;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
         type: 'update',
+        name: nombreJugador,
         position: cabeza,
         snake: viborita,
         score: puntaje
@@ -828,7 +955,7 @@ function dibujarViborita() {
   let offsetX = centerX - (VENTANA_ANCHO * scale) / 2;
   let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
   
-  // Draw other players' snakes
+  // Draw other players' snakes with improved small-scale visibility
   otherPlayers.forEach((player) => {
     if (player.snake) {
       noStroke();
@@ -841,9 +968,9 @@ function dibujarViborita() {
         
         let x = offsetX + segmento.x * scaledCuadra + scaledCuadra/2;
         let y = offsetY + segmento.y * scaledCuadra + scaledCuadra/2;
-        let size = map(i, 0, player.snake.length - 1, scaledCuadra - 2, scaledCuadra - 8);
+        let size = map(i, 0, player.snake.length - 1, scaledCuadra - 1, scaledCuadra - 4);
         
-        rect(x, y, size, size, 4);
+        rect(x, y, size, size, 3); // Smaller corner radius for better small-scale appearance
       }
       
       // Draw head with player name
@@ -852,18 +979,18 @@ function dibujarViborita() {
         fill(player.color[0], player.color[1], player.color[2]);
         let x = offsetX + cabeza.x * scaledCuadra + scaledCuadra/2;
         let y = offsetY + cabeza.y * scaledCuadra + scaledCuadra/2;
-        rect(x, y, scaledCuadra - 2, scaledCuadra - 2, 6);
+        rect(x, y, scaledCuadra - 1, scaledCuadra - 1, 4);
         
-        // Draw player name above head
+        // Draw player name above head with better scaling
         fill(255);
-        textSize(8 * scale);
+        textSize(7 * scale);
         textAlign(CENTER, BOTTOM);
-        text(player.name, x, y - scaledCuadra/2);
+        text(player.name, x, y - scaledCuadra/2 - 2);
       }
     }
   });
   
-  // Draw local player's snake
+  // Draw local player's snake with improved small-scale visibility
   noStroke();
   
   // Draw body segments
@@ -877,9 +1004,9 @@ function dibujarViborita() {
     
     let x = offsetX + segmento.x * scaledCuadra + scaledCuadra/2;
     let y = offsetY + segmento.y * scaledCuadra + scaledCuadra/2;
-    let size = map(i, 0, viborita.length - 1, scaledCuadra - 2, scaledCuadra - 8);
+    let size = map(i, 0, viborita.length - 1, scaledCuadra - 1, scaledCuadra - 4);
     
-    rect(x, y, size, size, 4);
+    rect(x, y, size, size, 3);
   }
   
   // Draw head
@@ -889,21 +1016,22 @@ function dibujarViborita() {
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
   let x = offsetX + cabeza.x * scaledCuadra + scaledCuadra/2;
   let y = offsetY + cabeza.y * scaledCuadra + scaledCuadra/2;
-  rect(x, y, scaledCuadra - 2, scaledCuadra - 2, 6);
+  rect(x, y, scaledCuadra - 1, scaledCuadra - 1, 4);
   
-  // Draw player name above head
+  // Draw player name above head with adjusted size
   fill(255);
-  textSize(8 * scale);
+  textSize(7 * scale);
   textAlign(CENTER, BOTTOM);
-  text(nombreJugador, x, y - scaledCuadra/2);
+  text(nombreJugador, x, y - scaledCuadra/2 - 2);
   
-  // Draw eyes
+  // Draw eyes with adjusted size
   fill(255);
-  let eyeOffsetX = direccion.x * 5 * scale;
-  let eyeOffsetY = direccion.y * 5 * scale;
+  let eyeSize = 2 * scale;
+  let eyeOffsetX = direccion.x * 3 * scale;
+  let eyeOffsetY = direccion.y * 3 * scale;
   
-  ellipse(x - 5 * scale + eyeOffsetX, y - 5 * scale + eyeOffsetY, 4 * scale, 4 * scale);
-  ellipse(x + 5 * scale + eyeOffsetX, y - 5 * scale + eyeOffsetY, 4 * scale, 4 * scale);
+  ellipse(x - 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
+  ellipse(x + 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
 }
 
 // Generate a new café at a random unoccupied position
@@ -974,7 +1102,6 @@ function drawCoffeeCup(x, y, size) {
 
 // Draw the café on the canvas with improved display
 function dibujarCafe() {
-  // Calculate the center and scale for full-screen map
   let centerX = width / 2;
   let centerY = height / 2;
   let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
@@ -985,80 +1112,83 @@ function dibujarCafe() {
   let x = offsetX + cafe.x * scaledCuadra + scaledCuadra/2;
   let y = offsetY + cafe.y * scaledCuadra + scaledCuadra/2;
   
-  // Draw coffee cup using the loaded image with a subtle bounce animation
   if (cafeIcon) {
-    let iconSize = scaledCuadra * 1.2; // Slightly larger icon
-    let bounce = sin(frameCount * 0.05) * 2; // Subtle floating animation
+    let iconSize = scaledCuadra * 0.9; // Slightly smaller relative to grid
+    let bounce = sin(frameCount * 0.05) * 1.5; // Reduced bounce amplitude
     
-    // Enhanced glow effect
-    drawingContext.shadowBlur = 20;
-    drawingContext.shadowColor = 'rgba(255, 220, 150, 0.4)';
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 220, 150, 0.5)';
     
     push();
     imageMode(CENTER);
     image(cafeIcon, x, y + bounce, iconSize, iconSize);
     pop();
     
-    drawingContext.shadowBlur = 0;
-  } else {
-    drawCoffeeCup(x, y, scaledCuadra * 0.8);
+    // Name panel with adjusted size
+    let panelWidth = textWidth(cafeActual) + 40; // Reduced padding
+    let panelHeight = 24; // Reduced height
+    let panelY = y + scaledCuadra * 0.9; // Closer to icon
+    
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    
+    let gradient = drawingContext.createLinearGradient(
+      x - panelWidth/2, panelY - panelHeight/2,
+      x + panelWidth/2, panelY + panelHeight/2
+    );
+    gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
+    gradient.addColorStop(0.5, 'rgba(45, 45, 55, 0.95)');
+    gradient.addColorStop(1, 'rgba(35, 35, 45, 0.95)');
+    drawingContext.fillStyle = gradient;
+    
+    rect(x, panelY, panelWidth, panelHeight, 12);
+    
+    fill(255, 255, 255, 20);
+    rect(x, panelY - panelHeight/4, panelWidth - 4, panelHeight/8, 3);
+    
+    textAlign(CENTER, CENTER);
+    textSize(10 * scale); // Smaller text size
+    textStyle(BOLD);
+    fill(255, 255, 240);
+    text(cafeActual, x, panelY);
   }
-  
-  // Draw café name with improved styling and more separation
-  textAlign(CENTER, CENTER);
-  
-  // Background panel with gradient - moved further down
-  let panelWidth = textWidth(cafeActual) + 60; // Increased padding
-  let panelHeight = 32; // Slightly reduced height
-  let panelY = y + scaledCuadra * 1.2; // Increased separation from icon
-  
-  // Enhanced panel shadow
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  
-  // Gradient background with improved colors
-  let gradient = drawingContext.createLinearGradient(
-    x - panelWidth/2, panelY - panelHeight/2,
-    x + panelWidth/2, panelY + panelHeight/2
-  );
-  gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
-  gradient.addColorStop(0.5, 'rgba(45, 45, 55, 0.95)');
-  gradient.addColorStop(1, 'rgba(35, 35, 45, 0.95)');
-  drawingContext.fillStyle = gradient;
-  
-  // Draw panel with rounded corners
-  rect(x, panelY, panelWidth, panelHeight, 16);
-  
-  // Add subtle shine effect at the top
-  fill(255, 255, 255, 15);
-  rect(x, panelY - panelHeight/4, panelWidth - 4, panelHeight/8, 4);
-  
-  // Café name with enhanced styling
-  drawingContext.shadowBlur = 2;
-  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.6)';
-  textSize(13 * scale);
-  textStyle(BOLD);
-  fill(255, 255, 230);
-  text(cafeActual, x, panelY);
   
   drawingContext.shadowBlur = 0;
 }
 
 // Generate a new bache at a random unoccupied position
 function generarBache() {
-  let posicionesOcupadas = viborita.concat(baches);
+  let posicionesOcupadas = viborita.concat(baches.flatMap(b => b.squares));
   let attempts = 0;
   const maxAttempts = 100; // Prevent infinite loops
   
   while (attempts < maxAttempts) {
+    let size = Math.random() < 0.7 ? 1 : (Math.random() < 0.7 ? 2 : 3); // 70% size 1, 21% size 2, 9% size 3
     let pos = {
-      x: Math.floor(random(GRILLA_ANCHO)),
-      y: Math.floor(random(GRILLA_ALTO))
+      x: Math.floor(random(GRILLA_ANCHO - size + 1)), // Ensure bache stays within grid
+      y: Math.floor(random(GRILLA_ALTO - size + 1)),
+      size: size,
+      squares: [] // Will store all grid positions this bache occupies
     };
-    
-    // Also check it's not on top of the café
-    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y) &&
-        !(pos.x === cafe.x && pos.y === cafe.y)) {
+
+    // Generate all squares this bache will occupy
+    let isValid = true;
+    for (let dx = 0; dx < size; dx++) {
+      for (let dy = 0; dy < size; dy++) {
+        let square = {x: pos.x + dx, y: pos.y + dy};
+        
+        // Check if this square is occupied or is the café
+        if (posicionesOcupadas.some(p => p.x === square.x && p.y === square.y) ||
+            (square.x === cafe.x && square.y === cafe.y)) {
+          isValid = false;
+          break;
+        }
+        pos.squares.push(square);
+      }
+      if (!isValid) break;
+    }
+
+    if (isValid) {
       console.log('Generated new bache at:', pos);
       return pos;
     }
@@ -1066,12 +1196,11 @@ function generarBache() {
   }
   
   console.log('Could not generate bache after max attempts');
-  return null; // Return null if we couldn't find a valid position
+  return null;
 }
 
 // Draw the baches on the canvas
 function dibujarBaches() {
-  // Calculate the center and scale for full-screen map
   let centerX = width / 2;
   let centerY = height / 2;
   let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
@@ -1080,29 +1209,72 @@ function dibujarBaches() {
   let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
   
   for (let bache of baches) {
-    let x = offsetX + bache.x * scaledCuadra + scaledCuadra/2;
-    let y = offsetY + bache.y * scaledCuadra + scaledCuadra/2;
+    // Calculate the center position of the entire bache
+    let bacheX = offsetX + (bache.x + bache.size/2) * scaledCuadra;
+    let bacheY = offsetY + (bache.y + bache.size/2) * scaledCuadra;
     
-    // Use the bache image if loaded
     if (bacheIcon) {
-      // Calculate appropriate size for the bache icon
-      let iconSize = scaledCuadra * 0.9;
+      let baseIconSize = scaledCuadra * 0.9; // Base size for single-square bache
+      let iconSize = baseIconSize * bache.size; // Scale based on number of squares
       
-      // Draw the bache icon image
+      // Enhanced shadow effect that scales with size
+      drawingContext.shadowBlur = 12 * bache.size;
+      drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      
       push();
       imageMode(CENTER);
-      image(bacheIcon, x, y, iconSize, iconSize);
+      // Add slight rotation for visual variety
+      rotate(bache.size * 0.1);
+      image(bacheIcon, bacheX, bacheY, iconSize, iconSize);
       pop();
+      
+      // Add a subtle glow effect for larger baches
+      if (bache.size > 1) {
+        drawingContext.shadowBlur = 20;
+        drawingContext.shadowColor = 'rgba(255, 100, 100, 0.3)';
+        noFill();
+        stroke(255, 100, 100, 30);
+        ellipse(bacheX, bacheY, iconSize * 1.2, iconSize * 1.2);
+      }
+      
+      drawingContext.shadowBlur = 0;
     } else {
-      // Fallback to drawn bache if image fails to load
+      // Fallback circle rendering with enhanced size differences
       noStroke();
       fill(COLOR_BACHE);
-      ellipse(x, y, (TAMANIO_CUADRA - 6) * scale, (TAMANIO_CUADRA - 6) * scale);
+      let baseSize = scaledCuadra * 0.9; // Base size for single-square bache
+      let totalSize = baseSize * bache.size;
       
-      // Add texture to the pothole
+      // Draw main bache shape
+      ellipse(bacheX, bacheY, totalSize, totalSize);
+      
+      // Add texture details that scale with size
       fill(60);
-      ellipse(x - 3 * scale, y - 3 * scale, 5 * scale, 5 * scale);
-      ellipse(x + 4 * scale, y + 2 * scale, 4 * scale, 4 * scale);
+      for (let i = 0; i < bache.size * 3; i++) {
+        let detailSize = 3 * scale;
+        let angle = random(TWO_PI);
+        let distance = random(totalSize/4);
+        let detailX = bacheX + cos(angle) * distance;
+        let detailY = bacheY + sin(angle) * distance;
+        ellipse(detailX, detailY, detailSize, detailSize);
+      }
+      
+      // Add crack details for larger baches
+      if (bache.size > 1) {
+        stroke(40);
+        strokeWeight(2);
+        for (let i = 0; i < bache.size * 2; i++) {
+          let angle = random(TWO_PI);
+          let startDist = random(totalSize/4);
+          let endDist = startDist + random(totalSize/4);
+          line(
+            bacheX + cos(angle) * startDist,
+            bacheY + sin(angle) * startDist,
+            bacheX + cos(angle) * endDist,
+            bacheY + sin(angle) * endDist
+          );
+        }
+      }
     }
   }
 }
@@ -1131,7 +1303,7 @@ function initSpotifyPlayer() {
   }
 }
 
-// Draw the music control button
+// Draw the music control button with improved styling
 function dibujarMusicControl() {
   let buttonSize = 50;
   let margin = 30;
@@ -1141,33 +1313,46 @@ function dibujarMusicControl() {
   // Check if mouse is over button
   let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
   
-  // Button background with gradient
-  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
-  drawingContext.shadowColor = 'rgba(30, 215, 96, 0.3)';
+  // Enhanced button shadow
+  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
+  drawingContext.shadowColor = 'rgba(30, 215, 96, 0.4)';
   
-  // Gradient background for button
+  // Improved gradient for Spotify-style button
   let gradient = drawingContext.createRadialGradient(
     x, y, 0,
     x, y, buttonSize/2
   );
-  gradient.addColorStop(0, mouseOverButton ? 'rgba(30, 215, 96, 1)' : 'rgba(25, 185, 85, 1)');
-  gradient.addColorStop(1, mouseOverButton ? 'rgba(25, 185, 85, 1)' : 'rgba(20, 155, 75, 1)');
+  gradient.addColorStop(0, mouseOverButton ? 'rgba(35, 220, 100, 1)' : 'rgba(30, 215, 96, 1)');
+  gradient.addColorStop(1, mouseOverButton ? 'rgba(30, 215, 96, 1)' : 'rgba(25, 185, 85, 1)');
   drawingContext.fillStyle = gradient;
   
-  ellipse(x, y, buttonSize, buttonSize);
+  // Draw button with slight scale effect on hover
+  let currentSize = mouseOverButton ? buttonSize * 1.05 : buttonSize;
+  ellipse(x, y, currentSize, currentSize);
   
-  // Draw pause/play icon - centered
+  // Draw pause/play icon with improved centering
   fill(255);
   noStroke();
   if (isPlaying) {
-    // Pause icon (two rectangles) - adjusted position
-    let barWidth = 4;
-    let barHeight = 16;
-    let spacing = 6;
-    rect(x - spacing - barWidth/2, y - barHeight/2, barWidth, barHeight, 2);
-    rect(x + spacing - barWidth/2, y - barHeight/2, barWidth, barHeight, 2);
+    // Pause icon (two rectangles) - perfectly centered
+    let barWidth = 5;
+    let barHeight = 15;
+    let spacing = 4;
+    
+    // Calculate total width of both bars plus spacing
+    let totalWidth = (barWidth * 2) + spacing;
+    
+    // Center the bars horizontally by starting from half the total width
+    let leftBarX = x - totalWidth/2;
+    let rightBarX = leftBarX + barWidth + spacing;
+    
+    // Draw the two bars with rounded corners
+    rectMode(CORNER);
+    rect(leftBarX, y - barHeight/2, barWidth, barHeight, 2);
+    rect(rightBarX, y - barHeight/2, barWidth, barHeight, 2);
+    rectMode(CENTER);
   } else {
-    // Play icon (triangle) - adjusted position
+    // Play icon (triangle) - adjusted for visual center
     let triangleSize = 14;
     beginShape();
     vertex(x - triangleSize/2, y - triangleSize);
@@ -1201,7 +1386,7 @@ function jugar() {
   }
   
   // Check bache collision
-  if (baches.some(b => b.x === cabeza.x && b.y === cabeza.y)) {
+  if (baches.some(b => b.squares.some(s => s.x === cabeza.x && s.y === cabeza.y))) {
     juegoTerminado = true;
     gameOverReason = 'bache';
     return;
@@ -1223,62 +1408,58 @@ function drawGameUI() {
   let cornerRadius = 15;
   
   // Panel shadow for depth
-  for (let i = 3; i > 0; i--) {
-    fill(0, 0, 0, 10);
-    rect(width - panelWidth/2 - margin, margin + panelHeight/2 + i, 
-         panelWidth + i, panelHeight, cornerRadius);
-  }
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
   
   // Panel background with gradient
   let panelY = margin + panelHeight/2;
-  for (let i = 0; i < panelHeight; i++) {
-    let inter = map(i, 0, panelHeight, 0, 1);
-    let c = lerpColor(
-      color(30, 30, 40, 220),
-      color(20, 20, 30, 220),
-      inter
-    );
-    fill(c);
-    rect(width - panelWidth/2 - margin, panelY - panelHeight/2 + i, 
-         panelWidth, 1, cornerRadius);
-  }
+  let gradient = drawingContext.createLinearGradient(
+    width - panelWidth - margin, panelY - panelHeight/2,
+    width - margin, panelY + panelHeight/2
+  );
+  gradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
+  gradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
+  drawingContext.fillStyle = gradient;
   
-  // Decorative accent line
+  rect(width - panelWidth/2 - margin, panelY, panelWidth, panelHeight, cornerRadius);
+  
+  // Decorative accent line with glow
+  drawingContext.shadowBlur = 8;
+  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
   stroke(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2], 180);
   strokeWeight(2);
   line(width - panelWidth + margin, margin + 22,
        width - margin - 10, margin + 22);
   noStroke();
   
+  drawingContext.shadowBlur = 0;
+  
   // Player section
   textAlign(LEFT, TOP);
   
   // Label with subtle glow
-  fill(150, 150, 150);
+  fill(180, 180, 180);
   textSize(12);
   textStyle(BOLD);
   text("JUGADOR", width - panelWidth + margin, margin + 8);
   
-  // Player name with shadow
-  fill(0, 0, 0, 100);
+  // Player name with enhanced styling
   textSize(20);
-  text(nombreJugador, width - panelWidth + margin + 1, margin + 31);
+  textStyle(BOLD);
   fill(255);
   text(nombreJugador, width - panelWidth + margin, margin + 30);
   
   // Score section
   textAlign(RIGHT, TOP);
   
-  // Score label with subtle glow
-  fill(150, 150, 150);
+  // Score label with consistent styling
+  fill(180, 180, 180);
   textSize(12);
   text("PUNTAJE", width - margin - 10, margin + 8);
   
-  // Score value with shadow and larger size
+  // Score value with enhanced styling
   textSize(28);
   textStyle(BOLD);
-  fill(0, 0, 0, 100);
-  text(puntaje, width - margin - 9, margin + 31);
-  fill(255, 255, 200); // Slightly warm tint for score
+  fill(255, 255, 220);
   text(puntaje, width - margin - 10, margin + 30);
 } 
