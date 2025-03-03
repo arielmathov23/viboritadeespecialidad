@@ -3,7 +3,7 @@
 
 // Game Constants
 const SNAKE_SIZE = 20;
-const MOVE_SPEED = 5;
+const MOVE_SPEED = 8;
 const TAMANIO_CUADRA = 20;
 const GRILLA_ANCHO = 30;
 const GRILLA_ALTO = 30;
@@ -97,7 +97,7 @@ let nombreJugador = "";
 let ingresandoNombre = true;
 let textoNombre = "";
 let juegoTerminado = false;
-const velocidadInicial = 4; // Slightly faster initial speed
+const velocidadInicial = 8; // Increased from 4
 let velocidadActual = velocidadInicial;
 let cafeIcon; // Variable to store the coffee icon image
 let bacheIcon; // Variable to store the pothole icon image
@@ -873,26 +873,28 @@ function dibujarMapaBarrios() {
 // Helper function to draw stylish neighborhood labels
 function drawNeighborhoodLabel(name, x, y) {
   // Background pill shape with a more distinctive color
-  fill(50, 100, 150, 180);
-  let labelWidth = textWidth(name) + 40; // Increased padding
-  rect(x, y, labelWidth, 30, 15);
+  fill(30, 30, 40, 200);
+  let labelWidth = textWidth(name) + 40;
+  let labelHeight = 30;
+  rect(x, y, labelWidth, labelHeight, 15);
   
-  // Add a subtle border with glow effect
-  drawingContext.shadowBlur = 5;
-  drawingContext.shadowColor = 'rgba(70, 130, 180, 0.5)';
-  stroke(70, 130, 180, 200);
+  // Add a subtle glow effect
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+  stroke(100, 200, 255, 150);
   strokeWeight(2);
   noFill();
-  rect(x, y, labelWidth, 30, 15);
+  rect(x, y, labelWidth, labelHeight, 15);
   noStroke();
-  drawingContext.shadowBlur = 0;
   
   // Text with improved styling
-  fill(220, 240, 255);
-  textSize(14);
+  fill(255);
+  textSize(16);
   textStyle(BOLD);
   textAlign(CENTER, CENTER);
   text(name, x, y);
+  
+  drawingContext.shadowBlur = 0;
 }
 
 // Move the viborita based on current direction
@@ -1390,12 +1392,21 @@ function drawGameUI() {
   text(puntaje, width - margin - 10, margin + 30);
 }
 
-// Helper function to determine neighborhood
+// Helper function to determine neighborhood based on screen position
 function getNeighborhoodFromPosition(x, y) {
+  // Simple quadrant check
   if (x < width/2) {
-    return y < height/2 ? 'RECOLETA' : 'COLEGIALES';
+    if (y < height/2) {
+      return 'RECOLETA';
+    } else {
+      return 'COLEGIALES';
+    }
   } else {
-    return y < height/2 ? 'PALERMO' : 'CHACARITA';
+    if (y < height/2) {
+      return 'PALERMO';
+    } else {
+      return 'CHACARITA';
+    }
   }
 }
 
