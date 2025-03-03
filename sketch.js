@@ -114,7 +114,7 @@ let currentNeighborhood = '';
 
 // Add new variables for Spotify integration
 let isPlaying = true; // Start with music playing
-const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/playlist/64sMCJNA9dqrKOS0sYVf8S?utm_source=generator&autoplay=1";
+const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/track/7ns39yx54DOHmmqWetPV6v?utm_source=generator&autoplay=1&loop=1";
 
 // Add these variables at the top with other constants
 const NUM_BACHES = 15; // Increased number of baches
@@ -1535,7 +1535,7 @@ function drawGameUI() {
   drawingContext.shadowBlur = 0;
 }
 
-// Update drawSpaceBackground to not draw neighborhood labels
+// Update drawSpaceBackground to include subtle neighborhood labels
 function drawSpaceBackground() {
   // Update color transition based on score
   let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
@@ -1587,6 +1587,52 @@ function drawSpaceBackground() {
   line(width/2, 0, width/2, height);
   // Horizontal divider
   line(0, height/2, width, height/2);
+
+  // Draw subtle neighborhood labels
+  push();
+  translate(0, 60); // Adjust for header height
+  
+  // Common label style
+  textAlign(CENTER, CENTER);
+  textSize(20);
+  textStyle(BOLD);
+  noStroke();
+  
+  // Calculate positions for labels (adjusted for header)
+  let margin = 100;
+  let labelY = (height - 60) / 4; // Adjusted for header
+  let bottomLabelY = height - 60 - labelY;
+  
+  // Draw each neighborhood label with a subtle background
+  function drawNeighborhoodLabel(name, x, y, isActive) {
+    let alpha = isActive ? 180 : 80;
+    let labelWidth = textWidth(name) + 40;
+    let labelHeight = 36;
+    
+    // Semi-transparent background
+    fill(20, 20, 30, alpha * 0.5);
+    rect(x, y, labelWidth, labelHeight, 18);
+    
+    // Text with conditional glow
+    if (isActive) {
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+    }
+    fill(255, 255, 255, alpha);
+    text(name, x, y);
+    drawingContext.shadowBlur = 0;
+  }
+  
+  // Get current neighborhood for active state
+  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
+  
+  // Draw labels for each quadrant
+  drawNeighborhoodLabel("RECOLETA", width/4, labelY, currentNeighborhood === "RECOLETA");
+  drawNeighborhoodLabel("PALERMO", width * 3/4, labelY, currentNeighborhood === "PALERMO");
+  drawNeighborhoodLabel("COLEGIALES", width/4, bottomLabelY, currentNeighborhood === "COLEGIALES");
+  drawNeighborhoodLabel("CHACARITA", width * 3/4, bottomLabelY, currentNeighborhood === "CHACARITA");
+  
+  pop();
 }
 
 // Add the missing function for multiplayer collisions
