@@ -36,14 +36,14 @@
         }
         .control-button {
             position: absolute;
-            width: 70px;
-            height: 70px;
+            width: 60px; /* Smaller buttons */
+            height: 60px; /* Smaller buttons */
             border-radius: 50%;
             background-color: rgba(80, 80, 120, 0.4);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 28px;
+            font-size: 24px; /* Smaller font */
             color: white;
             user-select: none;
             -webkit-user-select: none;
@@ -53,20 +53,20 @@
         }
         /* New positioning according to requirements */
         .mobile-up {
-            left: 20px;
-            bottom: 100px; /* Above the left button */
+            left: 25px;
+            bottom: 90px; /* Above the left button */
         }
         .mobile-left {
-            left: 20px;
-            bottom: 20px; /* Bottom left */
+            left: 25px;
+            bottom: 25px; /* Bottom left */
         }
         .mobile-down {
-            right: 20px;
-            bottom: 20px; /* Bottom right */
+            right: 25px;
+            bottom: 25px; /* Bottom right */
         }
         .mobile-right {
-            right: 20px;
-            bottom: 100px; /* Above the down button */
+            right: 25px;
+            bottom: 90px; /* Above the down button */
         }
         /* Hide controls on desktop */
         @media (min-width: 769px) {

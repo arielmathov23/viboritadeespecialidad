@@ -298,15 +298,22 @@ function showMobileInput(x, y) {
     });
     
     // Calculate position to center the input field - fixed position in the center
-    let leftPos = Math.max(10, Math.min(windowWidth - 300 - 10, width/2 - 140));
-    let topPos = Math.max(10, Math.min(windowHeight - 50 - 10, height/2));
+    // Adjust for the modal being moved up by 50px
+    let centerY = height/2 - 50; // Adjusted center point
+    let inputY = centerY + 20; // Match the position in the modal
+    
+    let inputWidth = 280;
+    let inputHeight = 45;
+    
+    let leftPos = Math.max(10, Math.min(windowWidth - inputWidth - 10, width/2 - inputWidth/2));
+    let topPos = Math.max(10, Math.min(windowHeight - inputHeight - 10, inputY - inputHeight/2));
     
     // Apply styles to make it more visible and easier to tap
     inputField.style.position = 'fixed'; // Use fixed positioning
     inputField.style.left = leftPos + 'px';
     inputField.style.top = topPos + 'px';
-    inputField.style.width = '280px';
-    inputField.style.height = '50px';
+    inputField.style.width = inputWidth + 'px';
+    inputField.style.height = inputHeight + 'px';
     inputField.style.opacity = '1';
     inputField.style.visibility = 'visible';
     inputField.style.display = 'block';
@@ -341,8 +348,8 @@ function drawNombreIngreso() {
   }
   
   // Calculate modal dimensions - make it appropriate for mobile
-  let modalWidth = isMobile ? min(width * 0.85, 450) : min(550, width * 0.9);
-  let modalHeight = isMobile ? min(height * 0.5, 400) : min(480, height * 0.75);
+  let modalWidth = isMobile ? min(width * 0.85, 400) : min(550, width * 0.9);
+  let modalHeight = isMobile ? min(height * 0.45, 350) : min(480, height * 0.75);
   let inputWidth = modalWidth * 0.8; // Wider input on mobile
   
   // Draw modal background with rounded corners and stronger border
@@ -350,42 +357,43 @@ function drawNombreIngreso() {
   fill(25, 25, 40, 240);
   strokeWeight(3);
   stroke(100, 100, 200, 200);
-  rect(width/2, height/2, modalWidth, modalHeight, 20);
+  rect(width/2, height/2 - 50, modalWidth, modalHeight, 20); // Move modal up by 50px
   
   // Add a subtle inner glow to the modal
   noFill();
   stroke(100, 100, 200, 50);
   strokeWeight(1);
-  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
+  rect(width/2, height/2 - 50, modalWidth - 10, modalHeight - 10, 15); // Move modal up by 50px
   
   // Simple, evenly spaced layout - adjusted for mobile
-  let titleY = height/2 - modalHeight * 0.3;
-  let subtitleY = titleY + (isMobile ? 35 : 35);
-  let labelY = height/2 - (isMobile ? 10 : 30);
-  let inputY = height/2 + (isMobile ? 20 : 20);
-  let buttonY = height/2 + modalHeight * 0.25;
+  let centerY = height/2 - 50; // Adjusted center point
+  let titleY = centerY - modalHeight * 0.28;
+  let subtitleY = titleY + (isMobile ? 30 : 35);
+  let labelY = centerY - (isMobile ? 5 : 30);
+  let inputY = centerY + (isMobile ? 20 : 20);
+  let buttonY = centerY + modalHeight * 0.25;
   
   // Draw title with clean, elegant styling - smaller on mobile
   noStroke();
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
   fill(255);
-  textSize(isMobile ? 24 : 28); // Reduced size for mobile
+  textSize(isMobile ? 22 : 28); // Reduced size for mobile
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  text('¡Bienvenido a', width/2, titleY - (isMobile ? 15 : 20));
-  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 15 : 20));
+  text('¡Bienvenido a', width/2, titleY - (isMobile ? 12 : 20));
+  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 12 : 20));
   
   // Draw subtitle - appropriate size for mobile
   drawingContext.shadowBlur = 5;
-  textSize(isMobile ? 14 : 16);
+  textSize(isMobile ? 13 : 16);
   textStyle(NORMAL);
   fill(200, 200, 200);
   text('El juego de cafetería en Buenos Aires', width/2, subtitleY);
   
   // Draw input label - appropriate size for mobile
   fill(255);
-  textSize(isMobile ? 18 : 18);
+  textSize(isMobile ? 16 : 18);
   textStyle(NORMAL);
   text('Ingresá tu nombre:', width/2, labelY);
   
@@ -395,7 +403,7 @@ function drawNombreIngreso() {
   fill(35, 35, 55);
   stroke('#4286f4');
   strokeWeight(2);
-  let inputHeight = isMobile ? 50 : 50;
+  let inputHeight = isMobile ? 45 : 50;
   rect(width/2, inputY, inputWidth, inputHeight, 10);
   
   // Draw text input content
@@ -460,14 +468,15 @@ function drawNombreIngreso() {
 // Update mousePressed function to handle the mobile input field and fix JUGAR button
 function mousePressed() {
   if (ingresandoNombre) {
-    let modalWidth = isMobile ? min(width * 0.85, 500) : min(550, width * 0.9);
-    let modalHeight = isMobile ? min(height * 0.6, 500) : min(480, height * 0.75);
+    let modalWidth = isMobile ? min(width * 0.85, 400) : min(550, width * 0.9);
+    let modalHeight = isMobile ? min(height * 0.45, 350) : min(480, height * 0.75);
+    let centerY = height/2 - 50; // Adjusted center point
     let inputWidth = modalWidth * 0.8;
-    let inputHeight = isMobile ? 50 : 50;
-    let inputY = height/2 + (isMobile ? 20 : 20);
-    let buttonWidth = inputWidth * 0.6;
-    let buttonHeight = isMobile ? 60 : 55;
-    let buttonY = height/2 + modalHeight * 0.25;
+    let inputHeight = isMobile ? 45 : 50;
+    let inputY = centerY + (isMobile ? 20 : 20);
+    let buttonWidth = inputWidth * 0.55;
+    let buttonHeight = isMobile ? 45 : 55;
+    let buttonY = centerY + modalHeight * 0.25;
     
     // Check if input field was clicked
     if (isMobile && 
@@ -504,12 +513,14 @@ function mousePressed() {
       }
     }
   } else if (juegoTerminado) {
-    let modalWidth = min(500, width * 0.9);
-    let modalHeight = min(400, height * 0.7);
+    let modalWidth = isMobile ? min(400, width * 0.85) : min(500, width * 0.9);
+    let modalHeight = isMobile ? min(350, height * 0.6) : min(400, height * 0.7);
+    let centerY = height/2 - 50; // Adjusted center point
     let buttonWidth = modalWidth * 0.5;
-    let buttonHeight = 55;
-    let buttonY = height/2 + modalHeight * 0.3;
+    let buttonHeight = isMobile ? 45 : 55;
+    let buttonY = centerY + modalHeight * 0.25;
     
+    // Check if restart button was clicked
     if (mouseX > width/2 - buttonWidth/2 && 
         mouseX < width/2 + buttonWidth/2 && 
         mouseY > buttonY - buttonHeight/2 && 
@@ -517,20 +528,27 @@ function mousePressed() {
       reiniciarJuego();
     }
   } else {
-    // Check for music control button click in header
-    let buttonSize = 40;
-    let x = width - 45;
-    let y = 30;
+    // Check for sound control button click in header
+    let headerHeight = isMobile ? 50 : 60;
+    let buttonSize = isMobile ? 32 : 40;
+    let x = width - (isMobile ? 35 : 45);
+    let y = headerHeight/2;
     
     if (dist(mouseX, mouseY, x, y) < buttonSize/2) {
+      // Toggle sound on/off
       isPlaying = !isPlaying;
-      if (youtubePlayer) {
-        if (isPlaying) {
+      
+      // Toggle YouTube player
+      if (isPlaying) {
+        if (youtubePlayer && typeof youtubePlayer.playVideo === 'function') {
           youtubePlayer.playVideo();
-        } else {
+        }
+      } else {
+        if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
           youtubePlayer.pauseVideo();
         }
       }
+      return;
     }
   }
 }
@@ -837,6 +855,20 @@ function moverViborita() {
       let newBache = generarBache();
       if (newBache) baches.push(newBache);
     }
+    
+    // Ensure the snake segments are properly spaced to prevent self-collision
+    // This adds a small gap between segments after drinking coffee
+    for (let i = 1; i < snake.length; i++) {
+      // Slightly adjust positions to prevent false collisions
+      let angle = atan2(snake[i].y - snake[i-1].y, snake[i].x - snake[i-1].x);
+      let distance = dist(snake[i-1].x, snake[i-1].y, snake[i].x, snake[i].y);
+      let targetDist = SNAKE_SIZE * 1.1; // Slightly larger spacing
+      
+      if (distance < targetDist) {
+        snake[i].x = snake[i-1].x + cos(angle) * targetDist;
+        snake[i].y = snake[i-1].y + sin(angle) * targetDist;
+      }
+    }
   } else {
     snake.pop();
   }
@@ -947,6 +979,11 @@ function dibujarViborita() {
     
     if (drinkingAnimation >= 1) {
       drinkingCoffee = false;
+      // Add a small delay before collision detection resumes
+      // This prevents false collisions right after drinking coffee
+      setTimeout(() => {
+        // This empty callback ensures the timeout completes
+      }, 100);
     } else {
       // Happy eyes (slightly larger during drinking)
       let blinkPhase = sin(frameCount * 0.5);
@@ -960,7 +997,7 @@ function dibujarViborita() {
       arc(cabeza.x, cabeza.y + 2, smileSize, smileSize, 0, PI);
       noStroke();
       
-      // Draw coffee effect
+      // Draw coffee effect at the last coffee position
       if (lastCoffeePosition) {
         drawCoffeeEffect(lastCoffeePosition.x, lastCoffeePosition.y, drinkingAnimation);
       }
@@ -1286,8 +1323,9 @@ function jugar() {
   // Draw the header UI
   drawGameUI();
   
-  // Translate everything below the header
-  translate(0, 60);
+  // Translate everything below the header - adjusted for mobile
+  let headerHeight = isMobile ? 50 : 60;
+  translate(0, headerHeight);
   
   // Update game state
   if (frameCount % 2 === 0) { // Slow down updates for smoother gameplay
@@ -1316,8 +1354,8 @@ function jugar() {
 
 // Draw the game UI with player name and score
 function drawGameUI() {
-  // Header dimensions
-  let headerHeight = 60;
+  // Header dimensions - smaller on mobile
+  let headerHeight = isMobile ? 50 : 60;
   
   // Draw header background with space theme
   drawingContext.shadowBlur = 15;
@@ -1348,57 +1386,89 @@ function drawGameUI() {
   let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
   textAlign(CENTER, CENTER);
   
-  // Neighborhood label
-  fill(180, 180, 180);
-  textSize(14);
-  textStyle(NORMAL);
-  text("BARRIO ACTUAL", width/2, headerHeight/2 - 12);
+  if (isMobile) {
+    // Mobile layout - simplified header
+    
+    // Neighborhood name with glow - centered
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+    fill(255);
+    textSize(18);
+    textStyle(BOLD);
+    text(currentNeighborhood, width/2, headerHeight/2);
+    drawingContext.shadowBlur = 0;
+    
+    // Player name - left
+    textAlign(LEFT, CENTER);
+    fill(255);
+    textSize(16);
+    textStyle(BOLD);
+    text(nombreJugador, 15, headerHeight/2);
+    
+    // Score - right
+    textAlign(RIGHT, CENTER);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
+    fill(255, 255, 220);
+    textSize(18);
+    textStyle(BOLD);
+    text(puntaje, width - 80, headerHeight/2);
+    drawingContext.shadowBlur = 0;
+  } else {
+    // Desktop layout - full header
+    
+    // Neighborhood label
+    fill(180, 180, 180);
+    textSize(14);
+    textStyle(NORMAL);
+    text("BARRIO ACTUAL", width/2, headerHeight/2 - 12);
+    
+    // Neighborhood name with glow
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
+    fill(255);
+    textSize(24);
+    textStyle(BOLD);
+    text(currentNeighborhood, width/2, headerHeight/2 + 12);
+    drawingContext.shadowBlur = 0;
+    
+    // Player section (left)
+    textAlign(LEFT, CENTER);
+    
+    // Player label
+    fill(180, 180, 180);
+    textSize(14);
+    textStyle(NORMAL);
+    text("JUGADOR", 30, headerHeight/2 - 12);
+    
+    // Player name
+    fill(255);
+    textSize(20);
+    textStyle(BOLD);
+    text(nombreJugador, 30, headerHeight/2 + 12);
+    
+    // Score section (right)
+    textAlign(RIGHT, CENTER);
+    
+    // Score label
+    fill(180, 180, 180);
+    textSize(14);
+    textStyle(NORMAL);
+    text("PUNTAJE", width - 120, headerHeight/2 - 12);
+    
+    // Score value with glow
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
+    fill(255, 255, 220);
+    textSize(24);
+    textStyle(BOLD);
+    text(puntaje, width - 120, headerHeight/2 + 12);
+    drawingContext.shadowBlur = 0;
+  }
   
-  // Neighborhood name with glow
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-  fill(255);
-  textSize(24);
-  textStyle(BOLD);
-  text(currentNeighborhood, width/2, headerHeight/2 + 12);
-  drawingContext.shadowBlur = 0;
-  
-  // Player section (left)
-  textAlign(LEFT, CENTER);
-  
-  // Player label
-  fill(180, 180, 180);
-  textSize(14);
-  textStyle(NORMAL);
-  text("JUGADOR", 30, headerHeight/2 - 12);
-  
-  // Player name
-  fill(255);
-  textSize(20);
-  textStyle(BOLD);
-  text(nombreJugador, 30, headerHeight/2 + 12);
-  
-  // Score section (right)
-  textAlign(RIGHT, CENTER);
-  
-  // Score label
-  fill(180, 180, 180);
-  textSize(14);
-  textStyle(NORMAL);
-  text("PUNTAJE", width - 120, headerHeight/2 - 12);
-  
-  // Score value with glow
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
-  fill(255, 255, 220);
-  textSize(24);
-  textStyle(BOLD);
-  text(puntaje, width - 120, headerHeight/2 + 12);
-  drawingContext.shadowBlur = 0;
-  
-  // Draw YouTube control in header
-  let buttonSize = 40;
-  let x = width - 45;
+  // Draw sound control in header (changed from YouTube control)
+  let buttonSize = isMobile ? 32 : 40;
+  let x = width - (isMobile ? 35 : 45);
   let y = headerHeight/2;
   
   // Check if mouse is over button
@@ -1406,46 +1476,77 @@ function drawGameUI() {
   
   // Enhanced button shadow
   drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
-  drawingContext.shadowColor = 'rgba(255, 0, 0, 0.4)'; // YouTube red shadow
+  drawingContext.shadowColor = 'rgba(100, 150, 255, 0.4)'; // Blue shadow for sound
   
-  // Improved gradient for YouTube-style button
+  // Improved gradient for sound button
   let buttonGradient = drawingContext.createRadialGradient(
     x, y, 0,
     x, y, buttonSize/2
   );
-  buttonGradient.addColorStop(0, mouseOverButton ? 'rgba(255, 40, 40, 1)' : 'rgba(255, 0, 0, 1)'); // YouTube red
-  buttonGradient.addColorStop(1, mouseOverButton ? 'rgba(220, 0, 0, 1)' : 'rgba(200, 0, 0, 1)');
+  buttonGradient.addColorStop(0, mouseOverButton ? 'rgba(80, 120, 220, 1)' : 'rgba(60, 100, 200, 1)'); // Blue for sound
+  buttonGradient.addColorStop(1, mouseOverButton ? 'rgba(40, 80, 180, 1)' : 'rgba(30, 60, 160, 1)');
   drawingContext.fillStyle = buttonGradient;
   
   // Draw button with slight scale effect on hover
   let currentSize = mouseOverButton ? buttonSize * 1.05 : buttonSize;
   ellipse(x, y, currentSize, currentSize);
   
-  // Draw pause/play icon
+  // Draw mute/unmute icon
   fill(255);
   noStroke();
+  
   if (isPlaying) {
-    // Pause icon
-    let barWidth = 4;
-    let barHeight = 12;
-    let spacing = 3;
-    let leftBarX = x - spacing/2 - barWidth;
-    let rightBarX = x + spacing/2;
+    // Sound on icon (speaker with waves)
+    let speakerSize = buttonSize * 0.4;
+    let waveOffset = buttonSize * 0.2;
+    
+    // Speaker base
     rectMode(CORNER);
-    rect(leftBarX, y - barHeight/2, barWidth, barHeight, 2);
-    rect(rightBarX, y - barHeight/2, barWidth, barHeight, 2);
+    rect(x - speakerSize/2, y - speakerSize/2, speakerSize * 0.5, speakerSize, 1);
+    
+    // Speaker cone
+    beginShape();
+    vertex(x - speakerSize/2 + speakerSize * 0.5, y - speakerSize/2);
+    vertex(x + speakerSize/2, y - speakerSize/2 - speakerSize * 0.3);
+    vertex(x + speakerSize/2, y + speakerSize/2 + speakerSize * 0.3);
+    vertex(x - speakerSize/2 + speakerSize * 0.5, y + speakerSize/2);
+    endShape(CLOSE);
+    
+    // Sound waves
+    noFill();
+    stroke(255);
+    strokeWeight(1.5);
+    let waveSize = speakerSize * 0.6;
+    arc(x + waveOffset, y, waveSize, waveSize, -QUARTER_PI, QUARTER_PI);
+    arc(x + waveOffset, y, waveSize * 1.5, waveSize * 1.5, -QUARTER_PI, QUARTER_PI);
+    noStroke();
     rectMode(CENTER);
   } else {
-    // Play icon
-    let triangleSize = 12;
+    // Sound off icon (speaker with X)
+    let speakerSize = buttonSize * 0.4;
+    
+    // Speaker base
+    rectMode(CORNER);
+    rect(x - speakerSize/2, y - speakerSize/2, speakerSize * 0.5, speakerSize, 1);
+    
+    // Speaker cone
     beginShape();
-    vertex(x - triangleSize/2, y - triangleSize);
-    vertex(x + triangleSize, y);
-    vertex(x - triangleSize/2, y + triangleSize);
+    vertex(x - speakerSize/2 + speakerSize * 0.5, y - speakerSize/2);
+    vertex(x + speakerSize/2, y - speakerSize/2 - speakerSize * 0.3);
+    vertex(x + speakerSize/2, y + speakerSize/2 + speakerSize * 0.3);
+    vertex(x - speakerSize/2 + speakerSize * 0.5, y + speakerSize/2);
     endShape(CLOSE);
+    
+    // X mark
+    stroke(255);
+    strokeWeight(2);
+    let xSize = speakerSize * 0.8;
+    let xOffset = speakerSize * 0.7;
+    line(x + xOffset - xSize/2, y - xSize/2, x + xOffset + xSize/2, y + xSize/2);
+    line(x + xOffset - xSize/2, y + xSize/2, x + xOffset + xSize/2, y - xSize/2);
+    noStroke();
+    rectMode(CENTER);
   }
-  
-  drawingContext.shadowBlur = 0;
 }
 
 // Update drawSpaceBackground to accept an opacity parameter
@@ -1740,41 +1841,42 @@ function drawGameOver() {
   }
   
   // Calculate modal dimensions
-  let modalWidth = min(500, width * 0.9);
-  let modalHeight = min(400, height * 0.7);
+  let modalWidth = isMobile ? min(400, width * 0.85) : min(500, width * 0.9);
+  let modalHeight = isMobile ? min(350, height * 0.6) : min(400, height * 0.7);
   
   // Draw modal background with rounded corners and stronger border
   rectMode(CENTER);
   fill(25, 25, 40, 240);
   strokeWeight(3);
   stroke(200, 70, 70, 200);
-  rect(width/2, height/2, modalWidth, modalHeight, 20);
+  rect(width/2, height/2 - 50, modalWidth, modalHeight, 20); // Move modal up by 50px
   
   // Add a subtle inner glow to the modal
   noFill();
   stroke(200, 70, 70, 50);
   strokeWeight(1);
-  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
+  rect(width/2, height/2 - 50, modalWidth - 10, modalHeight - 10, 15); // Move modal up by 50px
   
   // Simple, evenly spaced layout
-  let titleY = height/2 - modalHeight * 0.35;
-  let reasonY = titleY + 70;
-  let scoreY = reasonY + 70;
-  let buttonY = height/2 + modalHeight * 0.3;
+  let centerY = height/2 - 50; // Adjusted center point
+  let titleY = centerY - modalHeight * 0.3;
+  let reasonY = titleY + (isMobile ? 50 : 70);
+  let scoreY = reasonY + (isMobile ? 50 : 70);
+  let buttonY = centerY + modalHeight * 0.25;
   
   // Game Over text with glow effect
   noStroke();
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
   textAlign(CENTER, CENTER);
-  textSize(38);
+  textSize(isMobile ? 32 : 38);
   textStyle(BOLD);
   fill(255);
   text('¡GAME OVER!', width/2, titleY);
   
   // Game over reason with icon
   drawingContext.shadowBlur = 0;
-  textSize(22);
+  textSize(isMobile ? 18 : 22);
   fill(220, 220, 220);
   textStyle(NORMAL);
   
@@ -1795,18 +1897,18 @@ function drawGameOver() {
   }
   
   // Score display with enhanced styling
-  textSize(18);
+  textSize(isMobile ? 16 : 18);
   fill(180, 180, 180);
-  text('PUNTAJE FINAL', width/2, scoreY - 25);
+  text('PUNTAJE FINAL', width/2, scoreY - 20);
   
-  textSize(42);
+  textSize(isMobile ? 36 : 42);
   textStyle(BOLD);
   fill(255, 255, 220);
   text(puntaje, width/2, scoreY + 15);
   
   // Restart button with hover effect
   let buttonWidth = modalWidth * 0.5;
-  let buttonHeight = 55;
+  let buttonHeight = isMobile ? 45 : 55;
   
   // Check if mouse is over button
   let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
@@ -1828,18 +1930,27 @@ function drawGameOver() {
   drawingContext.shadowBlur = 0;
   fill(255);
   noStroke();
-  textSize(20);
+  textSize(isMobile ? 18 : 20);
   textStyle(BOLD);
   text('JUGAR DE NUEVO', width/2, buttonY);
   
   // Add different instructions for mobile vs desktop
-  textSize(16);
+  textSize(isMobile ? 14 : 16);
   textStyle(NORMAL);
   fill(150, 150, 150);
   if (isMobile) {
-    text('Toca el botón para jugar de nuevo', width/2, buttonY + 45);
+    text('Toca el botón para jugar de nuevo', width/2, buttonY + 35);
   } else {
     text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 45);
+  }
+  
+  // Make sure mobile controls are visible during game over
+  if (isMobile) {
+    let controlsDiv = document.querySelector('.mobile-controls');
+    if (controlsDiv) {
+      controlsDiv.style.display = 'block';
+      controlsDiv.style.zIndex = '50'; // Lower than modal but still visible
+    }
   }
   
   // Reset drawing settings
@@ -1922,9 +2033,11 @@ function checkSelfCollision() {
   // Get the snake's head
   let cabeza = snake[0];
   
-  // Check collision with own body (starting from segment 2 to avoid false positives)
-  for (let i = 2; i < snake.length; i++) {
-    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
+  // Check collision with own body (starting from segment 3 to avoid false positives)
+  // Increased from segment 2 to segment 3 to prevent false collisions after drinking coffee
+  for (let i = 3; i < snake.length; i++) {
+    // Reduced collision threshold from 0.8 to 0.7 for more accurate detection
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
       return true;
     }
   }
