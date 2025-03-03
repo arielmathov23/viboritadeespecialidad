@@ -2,6 +2,8 @@
 // This file contains the game logic for the snake-like game set in Buenos Aires
 
 // Game Constants
+const SNAKE_SIZE = 20;
+const MOVE_SPEED = 5;
 const TAMANIO_CUADRA = 20;
 const GRILLA_ANCHO = 30;
 const GRILLA_ALTO = 30;
@@ -85,9 +87,9 @@ const CAFES_BA = {
 };
 
 // Game Variables
-let viborita = [];
-let direccion;
-let cafe;
+let snake = [];
+let direction = { x: 0, y: 0 };
+let cafe = null;
 let cafeActual = '';
 let baches = [];
 let puntaje = 0;
@@ -126,6 +128,20 @@ const BACKGROUND_COLORS = [
 ];
 let currentBackgroundIndex = 0;
 let backgroundTransitionProgress = 0;
+
+// Add these variables at the top with other constants
+const SPACE_COLORS = [
+  [20, 20, 40],    // Deep space blue
+  [40, 20, 40],    // Purple space
+  [20, 40, 40],    // Teal space
+  [40, 20, 20],    // Red space
+  [30, 40, 20],    // Green space
+  [40, 30, 20]     // Orange space
+];
+let currentSpaceIndex = 0;
+let spaceTransitionProgress = 0;
+let stars = [];
+const NUM_STARS = 200;
 
 // P5.js Preload Function
 function preload() {
@@ -177,32 +193,33 @@ function setup() {
       angle: random(TWO_PI)
     });
   }
+  
+  // Initialize stars
+  for (let i = 0; i < NUM_STARS; i++) {
+    stars.push({
+      x: random(width),
+      y: random(height),
+      size: random(1, 3),
+      twinkleSpeed: random(0.02, 0.05),
+      twinkleOffset: random(TWO_PI)
+    });
+  }
 }
 
 // Window resize handler
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  // Update star positions for new window size
+  for (let star of stars) {
+    star.x = random(width);
+    star.y = random(height);
+  }
 }
 
 // P5.js Draw Function
 function draw() {
-  // Set background color based on score
-  let targetBackgroundIndex = Math.floor(puntaje / 10) % BACKGROUND_COLORS.length;
-  if (targetBackgroundIndex !== currentBackgroundIndex) {
-    backgroundTransitionProgress += 0.02;
-    if (backgroundTransitionProgress >= 1) {
-      currentBackgroundIndex = targetBackgroundIndex;
-      backgroundTransitionProgress = 0;
-    }
-  }
-
-  // Interpolate between current and next background color
-  let currentColor = BACKGROUND_COLORS[currentBackgroundIndex];
-  let nextColor = BACKGROUND_COLORS[(currentBackgroundIndex + 1) % BACKGROUND_COLORS.length];
-  let r = lerp(currentColor[0], nextColor[0], backgroundTransitionProgress);
-  let g = lerp(currentColor[1], nextColor[1], backgroundTransitionProgress);
-  let b = lerp(currentColor[2], nextColor[2], backgroundTransitionProgress);
-  background(r, g, b);
+  // Draw space background
+  drawSpaceBackground();
 
   if (ingresandoNombre) {
     dibujarModalNombre();
@@ -644,10 +661,10 @@ function keyPressed() {
       reiniciarJuego();
     }
   } else {
-    if (keyCode === UP_ARROW && direccion.y !== 1) direccion = {x: 0, y: -1};
-    else if (keyCode === DOWN_ARROW && direccion.y !== -1) direccion = {x: 0, y: 1};
-    else if (keyCode === LEFT_ARROW && direccion.x !== 1) direccion = {x: -1, y: 0};
-    else if (keyCode === RIGHT_ARROW && direccion.x !== -1) direccion = {x: 1, y: 0};
+    if (keyCode === UP_ARROW && direction.y >= 0) direction = {x: 0, y: -MOVE_SPEED};
+    else if (keyCode === DOWN_ARROW && direction.y <= 0) direction = {x: 0, y: MOVE_SPEED};
+    else if (keyCode === LEFT_ARROW && direction.x >= 0) direction = {x: -MOVE_SPEED, y: 0};
+    else if (keyCode === RIGHT_ARROW && direction.x <= 0) direction = {x: MOVE_SPEED, y: 0};
   }
 }
 
@@ -656,11 +673,11 @@ function iniciarJuego() {
   // Initialize Spotify player
   initSpotifyPlayer();
   
-  // Initialize local game state with random starting position
-  const startX = Math.floor(random(GRILLA_ANCHO));
-  const startY = Math.floor(random(GRILLA_ALTO));
-  viborita = [{x: startX, y: startY}];
-  direccion = {x: 1, y: 0};
+  // Initialize snake in center of screen
+  const startX = width/2;
+  const startY = height/2;
+  snake = [{x: startX, y: startY}];
+  direction = {x: MOVE_SPEED, y: 0};
   baches = [];
   cafe = generarCafe();
   
@@ -668,10 +685,10 @@ function iniciarJuego() {
   currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
   cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
   
-  // Start with just 1 bache
-  let initialBache = generarBache();
-  if (initialBache) {
-    baches.push(initialBache);
+  // Generate initial baches
+  for (let i = 0; i < NUM_BACHES; i++) {
+    let newBache = generarBache();
+    if (newBache) baches.push(newBache);
   }
   
   puntaje = 0;
@@ -682,86 +699,8 @@ function iniciarJuego() {
   // Set default color for single player mode
   myColor = COLOR_VIBORITA;
   
-  // Try to initialize WebSocket connection
-  try {
-    const connectWebSocket = () => {
-      // Connect to dedicated WebSocket server
-      ws = new WebSocket('wss://evening-peridot-screw.glitch.me');
-      
-      ws.onopen = () => {
-        console.log('Connected to game server');
-        // Send initial join message with player info
-        ws.send(JSON.stringify({
-          type: 'join',
-          name: nombreJugador,
-          position: {x: startX, y: startY},
-          snake: viborita,
-          score: puntaje
-        }));
-      };
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        switch(data.type) {
-          case 'gameState':
-            // Update other players
-            otherPlayers.clear();
-            data.players.forEach(player => {
-              if (player.name !== nombreJugador) {
-                otherPlayers.set(player.name, {
-                  ...player,
-                  lastUpdate: Date.now()
-                });
-              } else {
-                myColor = player.color;
-              }
-            });
-            break;
-            
-          case 'playerLeft':
-            otherPlayers.delete(data.name);
-            break;
-            
-          case 'playerRestart':
-            if (data.name !== nombreJugador) {
-              otherPlayers.set(data.name, {
-                name: data.name,
-                snake: [{x: data.position.x, y: data.position.y}],
-                color: data.color,
-                score: 0,
-                lastUpdate: Date.now()
-              });
-            }
-            break;
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.log('WebSocket error:', error);
-        ws = null;
-        otherPlayers.clear();
-      };
-      
-      ws.onclose = (event) => {
-        console.log('WebSocket connection closed');
-        ws = null;
-        otherPlayers.clear();
-        
-        // Try to reconnect after a delay
-        setTimeout(connectWebSocket, 3000);
-      };
-    };
-    
-    // Start WebSocket connection
-    connectWebSocket();
-  } catch (error) {
-    console.log('Failed to initialize WebSocket - running in single player mode');
-    ws = null;
-    otherPlayers.clear();
-  }
-  
-  loop();
+  // Initialize WebSocket connection
+  initializeWebSocket(startX, startY);
 }
 
 // Restart the game after game over
@@ -771,8 +710,8 @@ function reiniciarJuego() {
   const startY = Math.floor(random(GRILLA_ALTO));
   
   // Reset game state
-  viborita = [{x: startX, y: startY}];
-  direccion = {x: 0, y: 0};
+  snake = [{x: startX, y: startY}];
+  direction = {x: 0, y: 0};
   cafe = generarCafe();
   baches = [];
   // Start with just 1 bache again
@@ -954,38 +893,29 @@ function drawNeighborhoodLabel(name, x, y) {
 
 // Move the viborita based on current direction
 function moverViborita() {
-  let cabeza = {x: viborita[0].x + direccion.x, y: viborita[0].y + direccion.y};
+  let cabeza = {
+    x: snake[0].x + direction.x,
+    y: snake[0].y + direction.y
+  };
   
-  // Check collision with other players with improved collision detection
-  let collidedPlayer = null;
-  otherPlayers.forEach((player, playerName) => {
-    if (player.snake) {
-      // Check head-to-head collision
-      if (player.snake[0] && 
-          cabeza.x === player.snake[0].x && 
-          cabeza.y === player.snake[0].y) {
-        collidedPlayer = playerName;
-        return;
-      }
-      // Check collision with other player's body
-      for (let i = 1; i < player.snake.length; i++) {
-        if (cabeza.x === player.snake[i].x && 
-            cabeza.y === player.snake[i].y) {
-          collidedPlayer = playerName;
-          return;
-        }
-      }
-    }
-  });
+  // Wrap around screen edges
+  if (cabeza.x < 0) cabeza.x = width;
+  if (cabeza.x > width) cabeza.x = 0;
+  if (cabeza.y < 0) cabeza.y = height;
+  if (cabeza.y > height) cabeza.y = 0;
   
+  // Check collision with other players
+  let collidedPlayer = checkPlayerCollisions(cabeza);
   if (collidedPlayer) {
     juegoTerminado = true;
     colisionJugador = collidedPlayer;
     return;
   }
   
-  viborita.unshift(cabeza);
-  if (cabeza.x === cafe.x && cabeza.y === cafe.y) {
+  snake.unshift(cabeza);
+  
+  // Check cafe collection with a more forgiving distance
+  if (cafe && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE) {
     puntaje++;
     cafe = generarCafe();
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
@@ -996,28 +926,14 @@ function moverViborita() {
     // Add new bache every 3 points
     if (puntaje % 3 === 0) {
       let newBache = generarBache();
-      if (newBache) {
-        baches.push(newBache);
-      }
+      if (newBache) baches.push(newBache);
     }
   } else {
-    viborita.pop();
+    snake.pop();
   }
   
-  // Send more frequent updates for smoother multiplayer
-  const now = Date.now();
-  if (now - lastUpdateTime > UPDATE_INTERVAL) {
-    lastUpdateTime = now;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'update',
-        name: nombreJugador,
-        position: cabeza,
-        snake: viborita,
-        score: puntaje
-      }));
-    }
-  }
+  // Send updates to server
+  sendPlayerUpdate(cabeza);
 }
 
 // Draw the viborita on the canvas
@@ -1069,9 +985,9 @@ function dibujarViborita() {
   noStroke();
   
   // Draw body segments
-  for (let i = viborita.length - 1; i > 0; i--) {
-    let segmento = viborita[i];
-    let alpha = map(i, 0, viborita.length - 1, 255, 150);
+  for (let i = snake.length - 1; i > 0; i--) {
+    let segmento = snake[i];
+    let alpha = map(i, 0, snake.length - 1, 255, 150);
     fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
          myColor ? myColor[1] : COLOR_VIBORITA[1], 
          myColor ? myColor[2] : COLOR_VIBORITA[2], 
@@ -1079,13 +995,13 @@ function dibujarViborita() {
     
     let x = offsetX + segmento.x * scaledCuadra + scaledCuadra/2;
     let y = offsetY + segmento.y * scaledCuadra + scaledCuadra/2;
-    let size = map(i, 0, viborita.length - 1, scaledCuadra - 1, scaledCuadra - 4);
+    let size = map(i, 0, snake.length - 1, scaledCuadra - 1, scaledCuadra - 4);
     
     rect(x, y, size, size, 3);
   }
   
   // Draw head
-  let cabeza = viborita[0];
+  let cabeza = snake[0];
   fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
        myColor ? myColor[1] : COLOR_VIBORITA[1], 
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
@@ -1102,8 +1018,8 @@ function dibujarViborita() {
   // Draw eyes with adjusted size
   fill(255);
   let eyeSize = 2 * scale;
-  let eyeOffsetX = direccion.x * 3 * scale;
-  let eyeOffsetY = direccion.y * 3 * scale;
+  let eyeOffsetX = direction.x * 3 * scale;
+  let eyeOffsetY = direction.y * 3 * scale;
   
   ellipse(x - 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
   ellipse(x + 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
@@ -1111,30 +1027,48 @@ function dibujarViborita() {
 
 // Generate a new café at a random unoccupied position
 function generarCafe() {
-  let posicionesOcupadas = viborita.concat(baches);
+  let attempts = 0;
+  const maxAttempts = 50;
   
-  // Determine which neighborhood based on grid position
-  function getNeighborhoodFromPosition(x, y) {
-    if (x < GRILLA_ANCHO/2) {
-      return y < GRILLA_ALTO/2 ? 'RECOLETA' : 'COLEGIALES';
-    } else {
-      return y < GRILLA_ALTO/2 ? 'PALERMO' : 'CHACARITA';
-    }
-  }
-  
-  while (true) {
+  while (attempts < maxAttempts) {
     let pos = {
-      x: Math.floor(random(GRILLA_ANCHO)),
-      y: Math.floor(random(GRILLA_ALTO))
+      x: random(SNAKE_SIZE, width - SNAKE_SIZE),
+      y: random(SNAKE_SIZE, height - SNAKE_SIZE)
     };
     
-    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y)) {
-      // Update current neighborhood and select a random café from that neighborhood
+    // Check if position is far enough from snake and baches
+    let validPosition = true;
+    
+    // Check distance from snake
+    for (let part of snake) {
+      if (dist(pos.x, pos.y, part.x, part.y) < SNAKE_SIZE * 2) {
+        validPosition = false;
+        break;
+      }
+    }
+    
+    // Check distance from baches
+    for (let bache of baches) {
+      if (dist(pos.x, pos.y, bache.x, bache.y) < SNAKE_SIZE * 2) {
+        validPosition = false;
+        break;
+      }
+    }
+    
+    if (validPosition) {
+      // Update current neighborhood based on screen quadrants
       currentNeighborhood = getNeighborhoodFromPosition(pos.x, pos.y);
-      cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
       return pos;
     }
+    
+    attempts++;
   }
+  
+  // Fallback position if no valid position found
+  return {
+    x: width/2,
+    y: height/2
+  };
 }
 
 // Draw a coffee cup icon
@@ -1233,29 +1167,43 @@ function dibujarCafe() {
 
 // Generate a new bache at a random unoccupied position - Simplified version
 function generarBache() {
-  let posicionesOcupadas = [...viborita];
-  if (cafe) {
-    posicionesOcupadas.push(cafe);
-  }
-  baches.forEach(bache => posicionesOcupadas.push(bache));
-  
   let attempts = 0;
   const maxAttempts = 50;
   
   while (attempts < maxAttempts) {
     let pos = {
-      x: Math.floor(random(GRILLA_ANCHO)),
-      y: Math.floor(random(GRILLA_ALTO))
+      x: random(SNAKE_SIZE, width - SNAKE_SIZE),
+      y: random(SNAKE_SIZE, height - SNAKE_SIZE)
     };
     
-    // Check if position is occupied
-    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y)) {
-      return pos;
+    // Check if position is far enough from snake, cafe, and other baches
+    let validPosition = true;
+    
+    // Check distance from snake
+    for (let part of snake) {
+      if (dist(pos.x, pos.y, part.x, part.y) < SNAKE_SIZE * 3) {
+        validPosition = false;
+        break;
+      }
     }
+    
+    // Check distance from cafe
+    if (cafe && dist(pos.x, pos.y, cafe.x, cafe.y) < SNAKE_SIZE * 3) {
+      validPosition = false;
+    }
+    
+    // Check distance from other baches
+    for (let bache of baches) {
+      if (dist(pos.x, pos.y, bache.x, bache.y) < SNAKE_SIZE * 3) {
+        validPosition = false;
+        break;
+      }
+    }
+    
+    if (validPosition) return pos;
     attempts++;
   }
   
-  console.log('Could not generate bache after max attempts');
   return null;
 }
 
@@ -1473,35 +1421,78 @@ function drawGameUI() {
 
 // Helper function to determine neighborhood
 function getNeighborhoodFromPosition(x, y) {
-  if (x < GRILLA_ANCHO/2) {
-    return y < GRILLA_ALTO/2 ? 'RECOLETA' : 'COLEGIALES';
+  if (x < width/2) {
+    return y < height/2 ? 'RECOLETA' : 'COLEGIALES';
   } else {
-    return y < GRILLA_ALTO/2 ? 'PALERMO' : 'CHACARITA';
+    return y < height/2 ? 'PALERMO' : 'CHACARITA';
   }
 }
 
 // Add new function to check for collisions
 function verificarColisiones() {
-  let cabeza = viborita[0];
-  
-  // Check different types of collisions
-  if (cabeza.x < 0 || cabeza.x >= GRILLA_ANCHO || cabeza.y < 0 || cabeza.y >= GRILLA_ALTO) {
-    juegoTerminado = true;
-    gameOverReason = 'border';
-    return;
-  }
+  let cabeza = snake[0];
   
   // Check self collision
-  if (viborita.slice(1).some(seg => seg.x === cabeza.x && seg.y === cabeza.y)) {
-    juegoTerminado = true;
-    gameOverReason = 'self';
-    return;
+  for (let i = 1; i < snake.length; i++) {
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
+      juegoTerminado = true;
+      gameOverReason = 'self';
+      return;
+    }
   }
   
-  // Check bache collision - Fixed collision check
-  if (baches.some(bache => bache.x === cabeza.x && bache.y === cabeza.y)) {
-    juegoTerminado = true;
-    gameOverReason = 'bache';
-    return;
+  // Check bache collision with more forgiving distance check
+  for (let bache of baches) {
+    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.8) {
+      juegoTerminado = true;
+      gameOverReason = 'bache';
+      return;
+    }
   }
+}
+
+// Add new function to draw space background
+function drawSpaceBackground() {
+  // Update color transition based on score
+  let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
+  if (targetSpaceIndex !== currentSpaceIndex) {
+    spaceTransitionProgress += 0.02;
+    if (spaceTransitionProgress >= 1) {
+      currentSpaceIndex = targetSpaceIndex;
+      spaceTransitionProgress = 0;
+    }
+  }
+
+  // Interpolate between current and next space color
+  let currentColor = SPACE_COLORS[currentSpaceIndex];
+  let nextColor = SPACE_COLORS[(currentSpaceIndex + 1) % SPACE_COLORS.length];
+  let r = lerp(currentColor[0], nextColor[0], spaceTransitionProgress);
+  let g = lerp(currentColor[1], nextColor[1], spaceTransitionProgress);
+  let b = lerp(currentColor[2], nextColor[2], spaceTransitionProgress);
+  
+  // Create gradient background
+  let gradient = drawingContext.createRadialGradient(
+    width/2, height/2, 0,
+    width/2, height/2, max(width, height)
+  );
+  gradient.addColorStop(0, `rgba(${r+20}, ${g+20}, ${b+20}, 1)`);
+  gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 1)`);
+  drawingContext.fillStyle = gradient;
+  rect(0, 0, width*2, height*2);
+
+  // Draw stars with twinkle effect
+  for (let star of stars) {
+    let twinkle = sin(frameCount * star.twinkleSpeed + star.twinkleOffset);
+    let alpha = map(twinkle, -1, 1, 100, 255);
+    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
+    
+    // Star glow
+    drawingContext.shadowBlur = size * 2;
+    drawingContext.shadowColor = `rgba(255, 255, 255, ${alpha/255})`;
+    
+    fill(255, 255, 255, alpha);
+    noStroke();
+    ellipse(star.x, star.y, size, size);
+  }
+  drawingContext.shadowBlur = 0;
 } 
