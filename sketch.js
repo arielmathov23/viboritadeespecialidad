@@ -1,6 +1,10 @@
 // Viborita Indie BA - Main Game Script
 // This file contains the game logic for the snake-like game set in Buenos Aires
 
+// Add this at the very top of the file, before any other code
+let p5Canvas;
+let montserratFont;
+
 // Game Constants
 const SNAKE_SIZE = 20;
 const MOVE_SPEED = 8;
@@ -153,6 +157,9 @@ let lastCoffeePosition = null;
 // P5.js Preload Function
 function preload() {
   try {
+    // Load font
+    montserratFont = loadFont('https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCs16Hw5aXp-p7K4KLg.woff2');
+    
     // Load coffee icon image with absolute path
     cafeIcon = loadImage(window.location.origin + '/assets/iconcafe.png', 
       // Success callback
@@ -178,19 +185,42 @@ function preload() {
     console.error('Error in preload:', error);
     cafeIcon = null;
     bacheIcon = null;
+    // Use system fonts if Montserrat fails to load
+    montserratFont = null;
   }
 }
 
 // P5.js Setup Function
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  p5Canvas = createCanvas(windowWidth, windowHeight);
+  p5Canvas.parent('game-container'); // Will create this div if it doesn't exist
+  
+  // Create container if it doesn't exist
+  if (!document.getElementById('game-container')) {
+    const container = document.createElement('div');
+    container.id = 'game-container';
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.zIndex = '1';
+    document.body.appendChild(container);
+  }
+
   frameRate(velocidadActual);
-  textFont('Montserrat');
+  textFont(montserratFont || 'Arial'); // Use Arial as fallback
   rectMode(CENTER);
   ellipseMode(CENTER);
   imageMode(CENTER);
   
+  // Initialize game state
+  ingresandoNombre = true;
+  textoNombre = "";
+  juegoTerminado = false;
+  
   // Initialize particles
+  particles = []; // Reset particles array
   for (let i = 0; i < NUM_PARTICLES; i++) {
     particles.push({
       x: random(width),
@@ -202,6 +232,7 @@ function setup() {
   }
   
   // Initialize stars
+  stars = []; // Reset stars array
   for (let i = 0; i < NUM_STARS; i++) {
     stars.push({
       x: random(width),
@@ -225,9 +256,9 @@ function windowResized() {
 
 // P5.js Draw Function
 function draw() {
-  // Draw space background
-  drawSpaceBackground();
-
+  clear(); // Clear the canvas each frame
+  background(20, 20, 30); // Set a dark background
+  
   if (ingresandoNombre) {
     dibujarModalNombre();
   } else if (juegoTerminado) {
