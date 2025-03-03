@@ -1,10 +1,6 @@
 // Viborita Indie BA - Main Game Script
 // This file contains the game logic for the snake-like game set in Buenos Aires
 
-// Add this at the very top of the file, before any other code
-let p5Canvas;
-let montserratFont;
-
 // Game Constants
 const SNAKE_SIZE = 20;
 const MOVE_SPEED = 8;
@@ -116,9 +112,11 @@ const PARTICLE_SPEED = 0.5;
 // Add current neighborhood tracking
 let currentNeighborhood = '';
 
-// Add new variables for Spotify integration
+// Add new variables for YouTube integration
 let isPlaying = true; // Start with music playing
-const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/track/7ns39yx54DOHmmqWetPV6v?utm_source=generator&autoplay=1&loop=1";
+const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?enablejsapi=1&autoplay=1&loop=1&controls=0&modestbranding=1`;
+let youtubePlayer = null;
 
 // Add these variables at the top with other constants
 const NUM_BACHES = 15; // Increased number of baches
@@ -157,9 +155,6 @@ let lastCoffeePosition = null;
 // P5.js Preload Function
 function preload() {
   try {
-    // Load font
-    montserratFont = loadFont('https://fonts.gstatic.com/s/montserrat/v25/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCs16Hw5aXp-p7K4KLg.woff2');
-    
     // Load coffee icon image with absolute path
     cafeIcon = loadImage(window.location.origin + '/assets/iconcafe.png', 
       // Success callback
@@ -185,42 +180,19 @@ function preload() {
     console.error('Error in preload:', error);
     cafeIcon = null;
     bacheIcon = null;
-    // Use system fonts if Montserrat fails to load
-    montserratFont = null;
   }
 }
 
 // P5.js Setup Function
 function setup() {
-  p5Canvas = createCanvas(windowWidth, windowHeight);
-  p5Canvas.parent('game-container'); // Will create this div if it doesn't exist
-  
-  // Create container if it doesn't exist
-  if (!document.getElementById('game-container')) {
-    const container = document.createElement('div');
-    container.id = 'game-container';
-    container.style.position = 'fixed';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.style.zIndex = '1';
-    document.body.appendChild(container);
-  }
-
+  createCanvas(windowWidth, windowHeight);
   frameRate(velocidadActual);
-  textFont(montserratFont || 'Arial'); // Use Arial as fallback
+  textFont('Montserrat');
   rectMode(CENTER);
   ellipseMode(CENTER);
   imageMode(CENTER);
   
-  // Initialize game state
-  ingresandoNombre = true;
-  textoNombre = "";
-  juegoTerminado = false;
-  
   // Initialize particles
-  particles = []; // Reset particles array
   for (let i = 0; i < NUM_PARTICLES; i++) {
     particles.push({
       x: random(width),
@@ -232,7 +204,6 @@ function setup() {
   }
   
   // Initialize stars
-  stars = []; // Reset stars array
   for (let i = 0; i < NUM_STARS; i++) {
     stars.push({
       x: random(width),
@@ -256,9 +227,9 @@ function windowResized() {
 
 // P5.js Draw Function
 function draw() {
-  clear(); // Clear the canvas each frame
-  background(20, 20, 30); // Set a dark background
-  
+  // Draw space background
+  drawSpaceBackground();
+
   if (ingresandoNombre) {
     dibujarModalNombre();
   } else if (juegoTerminado) {
@@ -664,20 +635,20 @@ function mousePressed() {
       reiniciarJuego();
     }
   } else {
-    // Check for music control button click
-    let buttonSize = 50;
-    let margin = 30;
-    let x = width - buttonSize/2 - margin;
-    let y = height - buttonSize/2 - margin;
+    // Check for music control button click in header
+    let buttonSize = 40;
+    let x = width - 45;
+    let y = 30;
     
     if (dist(mouseX, mouseY, x, y) < buttonSize/2) {
       isPlaying = !isPlaying;
-      let iframe = document.getElementById('spotify-iframe');
-      if (iframe) {
-        // Send message to Spotify iframe to play/pause
-        iframe.contentWindow.postMessage({ command: isPlaying ? 'play' : 'pause' }, '*');
+      if (youtubePlayer) {
+        if (isPlaying) {
+          youtubePlayer.playVideo();
+        } else {
+          youtubePlayer.pauseVideo();
+        }
       }
-      return;
     }
   }
 }
@@ -708,8 +679,8 @@ function keyPressed() {
 
 // Initialize the game after name input
 function iniciarJuego() {
-  // Initialize Spotify player
-  initSpotifyPlayer();
+  // Initialize YouTube player
+  initYoutubePlayer();
   
   // Initialize snake in center of screen
   const startX = width/2;
@@ -1369,89 +1340,57 @@ function dibujarBaches() {
   }
 }
 
-// Initialize Spotify player
-function initSpotifyPlayer() {
-  let iframe = document.getElementById('spotify-iframe');
+// Initialize YouTube player
+function initYoutubePlayer() {
+  let iframe = document.getElementById('youtube-iframe');
   if (!iframe) {
     iframe = document.createElement('iframe');
-    iframe.id = 'spotify-iframe';
-    iframe.style.position = 'absolute';
+    iframe.id = 'youtube-iframe';
+    iframe.style.position = 'fixed';
     iframe.style.visibility = 'hidden';
     iframe.style.pointerEvents = 'none';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
     iframe.style.border = 'none';
-    iframe.src = SPOTIFY_EMBED_URL;
-    iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-    iframe.loading = "lazy";
+    iframe.src = YOUTUBE_EMBED_URL;
+    iframe.allow = "autoplay; encrypted-media";
     document.body.appendChild(iframe);
-    
+
     // Add event listener for iframe load
     iframe.onload = () => {
-      setTimeout(() => {
-        iframe.contentWindow.postMessage({ command: 'play' }, '*');
-      }, 1000);
+      console.log('YouTube iframe loaded');
+      // Initialize YouTube API
+      if (window.YT) {
+        youtubePlayer = new YT.Player('youtube-iframe', {
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      }
     };
+
+    // Add YouTube API script if not already present
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
   }
 }
 
-// Draw the music control button with improved styling
-function dibujarMusicControl() {
-  let buttonSize = 50;
-  let margin = 30;
-  let x = width - buttonSize/2 - margin;
-  let y = height - buttonSize/2 - margin;
-  
-  // Check if mouse is over button
-  let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
-  
-  // Enhanced button shadow
-  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
-  drawingContext.shadowColor = 'rgba(30, 215, 96, 0.4)';
-  
-  // Improved gradient for Spotify-style button
-  let gradient = drawingContext.createRadialGradient(
-    x, y, 0,
-    x, y, buttonSize/2
-  );
-  gradient.addColorStop(0, mouseOverButton ? 'rgba(35, 220, 100, 1)' : 'rgba(30, 215, 96, 1)');
-  gradient.addColorStop(1, mouseOverButton ? 'rgba(30, 215, 96, 1)' : 'rgba(25, 185, 85, 1)');
-  drawingContext.fillStyle = gradient;
-  
-  // Draw button with slight scale effect on hover
-  let currentSize = mouseOverButton ? buttonSize * 1.05 : buttonSize;
-  ellipse(x, y, currentSize, currentSize);
-  
-  // Draw pause/play icon with improved centering
-  fill(255);
-  noStroke();
-  if (isPlaying) {
-    // Pause icon (two rectangles) - perfectly centered
-    let barWidth = 5;
-    let barHeight = 15;
-    let spacing = 4;
-    
-    // Calculate total width of both bars plus spacing
-    let totalWidth = (barWidth * 2) + spacing;
-    
-    // Center the bars horizontally by starting from half the total width
-    let leftBarX = x - totalWidth/2;
-    let rightBarX = leftBarX + barWidth + spacing;
-    
-    // Draw the two bars with rounded corners
-    rectMode(CORNER);
-    rect(leftBarX, y - barHeight/2, barWidth, barHeight, 2);
-    rect(rightBarX, y - barHeight/2, barWidth, barHeight, 2);
-    rectMode(CENTER);
-  } else {
-    // Play icon (triangle) - adjusted for visual center
-    let triangleSize = 14;
-    beginShape();
-    vertex(x - triangleSize/2, y - triangleSize);
-    vertex(x + triangleSize, y);
-    vertex(x - triangleSize/2, y + triangleSize);
-    endShape(CLOSE);
+// YouTube API callbacks
+function onPlayerReady(event) {
+  event.target.playVideo();
+  isPlaying = true;
+}
+
+function onPlayerStateChange(event) {
+  // If video ends, replay it
+  if (event.data === YT.PlayerState.ENDED) {
+    event.target.playVideo();
   }
-  
-  drawingContext.shadowBlur = 0;
 }
 
 // Main game loop function
@@ -1477,9 +1416,6 @@ function jugar() {
   dibujarCafe();
   dibujarViborita();
   
-  // Draw music control
-  dibujarMusicControl();
-  
   pop();
 }
 
@@ -1493,13 +1429,13 @@ function drawGameUI() {
   drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
   
   // Header background with gradient
-  let gradient = drawingContext.createLinearGradient(
+  let headerGradient = drawingContext.createLinearGradient(
     0, 0,
     0, headerHeight
   );
-  gradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
-  gradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
-  drawingContext.fillStyle = gradient;
+  headerGradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
+  headerGradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
+  drawingContext.fillStyle = headerGradient;
   
   // Draw header rectangle
   rect(width/2, headerHeight/2, width, headerHeight);
@@ -1554,7 +1490,7 @@ function drawGameUI() {
   fill(180, 180, 180);
   textSize(14);
   textStyle(NORMAL);
-  text("PUNTAJE", width - 30, headerHeight/2 - 12);
+  text("PUNTAJE", width - 120, headerHeight/2 - 12);
   
   // Score value with glow
   drawingContext.shadowBlur = 10;
@@ -1562,11 +1498,62 @@ function drawGameUI() {
   fill(255, 255, 220);
   textSize(24);
   textStyle(BOLD);
-  text(puntaje, width - 30, headerHeight/2 + 12);
+  text(puntaje, width - 120, headerHeight/2 + 12);
+  drawingContext.shadowBlur = 0;
+  
+  // Draw YouTube control in header
+  let buttonSize = 40;
+  let x = width - 45;
+  let y = headerHeight/2;
+  
+  // Check if mouse is over button
+  let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
+  
+  // Enhanced button shadow
+  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
+  drawingContext.shadowColor = 'rgba(255, 0, 0, 0.4)'; // YouTube red shadow
+  
+  // Improved gradient for YouTube-style button
+  let buttonGradient = drawingContext.createRadialGradient(
+    x, y, 0,
+    x, y, buttonSize/2
+  );
+  buttonGradient.addColorStop(0, mouseOverButton ? 'rgba(255, 40, 40, 1)' : 'rgba(255, 0, 0, 1)'); // YouTube red
+  buttonGradient.addColorStop(1, mouseOverButton ? 'rgba(220, 0, 0, 1)' : 'rgba(200, 0, 0, 1)');
+  drawingContext.fillStyle = buttonGradient;
+  
+  // Draw button with slight scale effect on hover
+  let currentSize = mouseOverButton ? buttonSize * 1.05 : buttonSize;
+  ellipse(x, y, currentSize, currentSize);
+  
+  // Draw pause/play icon
+  fill(255);
+  noStroke();
+  if (isPlaying) {
+    // Pause icon
+    let barWidth = 4;
+    let barHeight = 12;
+    let spacing = 3;
+    let leftBarX = x - spacing/2 - barWidth;
+    let rightBarX = x + spacing/2;
+    rectMode(CORNER);
+    rect(leftBarX, y - barHeight/2, barWidth, barHeight, 2);
+    rect(rightBarX, y - barHeight/2, barWidth, barHeight, 2);
+    rectMode(CENTER);
+  } else {
+    // Play icon
+    let triangleSize = 12;
+    beginShape();
+    vertex(x - triangleSize/2, y - triangleSize);
+    vertex(x + triangleSize, y);
+    vertex(x - triangleSize/2, y + triangleSize);
+    endShape(CLOSE);
+  }
+  
   drawingContext.shadowBlur = 0;
 }
 
-// Update drawSpaceBackground to include subtle neighborhood labels
+// Update drawSpaceBackground to not draw neighborhood labels
 function drawSpaceBackground() {
   // Update color transition based on score
   let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
@@ -1620,50 +1607,35 @@ function drawSpaceBackground() {
   line(0, height/2, width, height/2);
 
   // Draw subtle neighborhood labels
-  push();
-  translate(0, 60); // Adjust for header height
-  
-  // Common label style
   textAlign(CENTER, CENTER);
-  textSize(20);
-  textStyle(BOLD);
+  textSize(24);
+  textStyle(NORMAL);
+  fill(255, 255, 255, 100); // More visible white
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.3)';
   noStroke();
   
-  // Calculate positions for labels (adjusted for header)
-  let margin = 100;
-  let labelY = (height - 60) / 4; // Adjusted for header
-  let bottomLabelY = height - 60 - labelY;
+  // Position labels near the center of each quadrant
+  let offsetX = width * 0.2;
+  let offsetY = height * 0.2;
   
-  // Draw each neighborhood label with a subtle background
-  function drawNeighborhoodLabel(name, x, y, isActive) {
-    let alpha = isActive ? 180 : 80;
-    let labelWidth = textWidth(name) + 40;
-    let labelHeight = 36;
-    
-    // Semi-transparent background
-    fill(20, 20, 30, alpha * 0.5);
-    rect(x, y, labelWidth, labelHeight, 18);
-    
-    // Text with conditional glow
-    if (isActive) {
-      drawingContext.shadowBlur = 15;
-      drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-    }
-    fill(255, 255, 255, alpha);
+  // Draw each neighborhood name with subtle background
+  function drawNeighborhoodName(name, x, y) {
+    // Background pill
+    fill(0, 0, 0, 40);
+    rect(x, y, textWidth(name) + 40, 40, 20);
+    // Text
+    fill(255, 255, 255, 100);
     text(name, x, y);
-    drawingContext.shadowBlur = 0;
   }
   
-  // Get current neighborhood for active state
-  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
+  // Draw each neighborhood name
+  drawNeighborhoodName("RECOLETA", width * 0.25, offsetY);
+  drawNeighborhoodName("PALERMO", width * 0.75, offsetY);
+  drawNeighborhoodName("COLEGIALES", width * 0.25, height - offsetY);
+  drawNeighborhoodName("CHACARITA", width * 0.75, height - offsetY);
   
-  // Draw labels for each quadrant
-  drawNeighborhoodLabel("RECOLETA", width/4, labelY, currentNeighborhood === "RECOLETA");
-  drawNeighborhoodLabel("PALERMO", width * 3/4, labelY, currentNeighborhood === "PALERMO");
-  drawNeighborhoodLabel("COLEGIALES", width/4, bottomLabelY, currentNeighborhood === "COLEGIALES");
-  drawNeighborhoodLabel("CHACARITA", width * 3/4, bottomLabelY, currentNeighborhood === "CHACARITA");
-  
-  pop();
+  drawingContext.shadowBlur = 0;
 }
 
 // Add the missing function for multiplayer collisions
