@@ -938,15 +938,7 @@ function moverViborita() {
 
 // Draw the viborita on the canvas
 function dibujarViborita() {
-  // Calculate the center and scale for full-screen map
-  let centerX = width / 2;
-  let centerY = height / 2;
-  let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
-  let scaledCuadra = TAMANIO_CUADRA * scale;
-  let offsetX = centerX - (VENTANA_ANCHO * scale) / 2;
-  let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
-  
-  // Draw other players' snakes with improved small-scale visibility
+  // Draw other players' snakes
   otherPlayers.forEach((player) => {
     if (player.snake) {
       noStroke();
@@ -956,32 +948,25 @@ function dibujarViborita() {
         let segmento = player.snake[i];
         let alpha = map(i, 0, player.snake.length - 1, 255, 150);
         fill(player.color[0], player.color[1], player.color[2], alpha);
-        
-        let x = offsetX + segmento.x * scaledCuadra + scaledCuadra/2;
-        let y = offsetY + segmento.y * scaledCuadra + scaledCuadra/2;
-        let size = map(i, 0, player.snake.length - 1, scaledCuadra - 1, scaledCuadra - 4);
-        
-        rect(x, y, size, size, 3); // Smaller corner radius for better small-scale appearance
+        rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 3);
       }
       
       // Draw head with player name
       if (player.snake.length > 0) {
         let cabeza = player.snake[0];
         fill(player.color[0], player.color[1], player.color[2]);
-        let x = offsetX + cabeza.x * scaledCuadra + scaledCuadra/2;
-        let y = offsetY + cabeza.y * scaledCuadra + scaledCuadra/2;
-        rect(x, y, scaledCuadra - 1, scaledCuadra - 1, 4);
+        rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 4);
         
-        // Draw player name above head with better scaling
+        // Draw player name above head
         fill(255);
-        textSize(7 * scale);
+        textSize(14);
         textAlign(CENTER, BOTTOM);
-        text(player.name, x, y - scaledCuadra/2 - 2);
+        text(player.name, cabeza.x, cabeza.y - SNAKE_SIZE);
       }
     }
   });
   
-  // Draw local player's snake with improved small-scale visibility
+  // Draw local player's snake
   noStroke();
   
   // Draw body segments
@@ -992,12 +977,7 @@ function dibujarViborita() {
          myColor ? myColor[1] : COLOR_VIBORITA[1], 
          myColor ? myColor[2] : COLOR_VIBORITA[2], 
          alpha);
-    
-    let x = offsetX + segmento.x * scaledCuadra + scaledCuadra/2;
-    let y = offsetY + segmento.y * scaledCuadra + scaledCuadra/2;
-    let size = map(i, 0, snake.length - 1, scaledCuadra - 1, scaledCuadra - 4);
-    
-    rect(x, y, size, size, 3);
+    rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 3);
   }
   
   // Draw head
@@ -1005,24 +985,22 @@ function dibujarViborita() {
   fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
        myColor ? myColor[1] : COLOR_VIBORITA[1], 
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
-  let x = offsetX + cabeza.x * scaledCuadra + scaledCuadra/2;
-  let y = offsetY + cabeza.y * scaledCuadra + scaledCuadra/2;
-  rect(x, y, scaledCuadra - 1, scaledCuadra - 1, 4);
+  rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 4);
   
-  // Draw player name above head with adjusted size
+  // Draw player name above head
   fill(255);
-  textSize(7 * scale);
+  textSize(14);
   textAlign(CENTER, BOTTOM);
-  text(nombreJugador, x, y - scaledCuadra/2 - 2);
+  text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
   
-  // Draw eyes with adjusted size
+  // Draw eyes
   fill(255);
-  let eyeSize = 2 * scale;
-  let eyeOffsetX = direction.x * 3 * scale;
-  let eyeOffsetY = direction.y * 3 * scale;
+  let eyeSize = 4;
+  let eyeOffsetX = direction.x * 3;
+  let eyeOffsetY = direction.y * 3;
   
-  ellipse(x - 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
-  ellipse(x + 3 * scale + eyeOffsetX, y - 3 * scale + eyeOffsetY, eyeSize, eyeSize);
+  ellipse(cabeza.x - 3 + eyeOffsetX, cabeza.y - 3 + eyeOffsetY, eyeSize, eyeSize);
+  ellipse(cabeza.x + 3 + eyeOffsetX, cabeza.y - 3 + eyeOffsetY, eyeSize, eyeSize);
 }
 
 // Generate a new café at a random unoccupied position
@@ -1111,55 +1089,46 @@ function drawCoffeeCup(x, y, size) {
 
 // Draw the café on the canvas with improved display
 function dibujarCafe() {
-  let centerX = width / 2;
-  let centerY = height / 2;
-  let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
-  let scaledCuadra = TAMANIO_CUADRA * scale;
-  let offsetX = centerX - (VENTANA_ANCHO * scale) / 2;
-  let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
-  
-  let x = offsetX + cafe.x * scaledCuadra + scaledCuadra/2;
-  let y = offsetY + cafe.y * scaledCuadra + scaledCuadra/2;
+  if (!cafe) return;
   
   if (cafeIcon) {
-    let iconSize = scaledCuadra * 0.9; // Slightly smaller relative to grid
-    let bounce = sin(frameCount * 0.05) * 1.5; // Reduced bounce amplitude
+    let iconSize = SNAKE_SIZE * 1.2;
+    let bounce = sin(frameCount * 0.05) * 1.5;
     
     drawingContext.shadowBlur = 15;
     drawingContext.shadowColor = 'rgba(255, 220, 150, 0.5)';
     
     push();
     imageMode(CENTER);
-    image(cafeIcon, x, y + bounce, iconSize, iconSize);
+    image(cafeIcon, cafe.x, cafe.y + bounce, iconSize, iconSize);
     pop();
     
-    // Name panel with adjusted size
-    let panelWidth = textWidth(cafeActual) + 40; // Reduced padding
-    let panelHeight = 24; // Reduced height
-    let panelY = y + scaledCuadra * 0.9; // Closer to icon
+    // Name panel
+    let panelWidth = textWidth(cafeActual) + 40;
+    let panelHeight = 24;
+    let panelY = cafe.y + SNAKE_SIZE * 1.5;
     
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
     
     let gradient = drawingContext.createLinearGradient(
-      x - panelWidth/2, panelY - panelHeight/2,
-      x + panelWidth/2, panelY + panelHeight/2
+      cafe.x - panelWidth/2, panelY - panelHeight/2,
+      cafe.x + panelWidth/2, panelY + panelHeight/2
     );
     gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
     gradient.addColorStop(0.5, 'rgba(45, 45, 55, 0.95)');
     gradient.addColorStop(1, 'rgba(35, 35, 45, 0.95)');
     drawingContext.fillStyle = gradient;
     
-    rect(x, panelY, panelWidth, panelHeight, 12);
-    
-    fill(255, 255, 255, 20);
-    rect(x, panelY - panelHeight/4, panelWidth - 4, panelHeight/8, 3);
+    rect(cafe.x, panelY, panelWidth, panelHeight, 12);
     
     textAlign(CENTER, CENTER);
-    textSize(10 * scale); // Smaller text size
+    textSize(12);
     textStyle(BOLD);
     fill(255, 255, 240);
-    text(cafeActual, x, panelY);
+    text(cafeActual, cafe.x, panelY);
+  } else {
+    drawCoffeeCup(cafe.x, cafe.y, SNAKE_SIZE * 1.2);
   }
   
   drawingContext.shadowBlur = 0;
@@ -1209,27 +1178,16 @@ function generarBache() {
 
 // Draw the baches on the canvas
 function dibujarBaches() {
-  let centerX = width / 2;
-  let centerY = height / 2;
-  let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
-  let scaledCuadra = TAMANIO_CUADRA * scale;
-  let offsetX = centerX - (VENTANA_ANCHO * scale) / 2;
-  let offsetY = centerY - (VENTANA_ALTO * scale) / 2;
-  
   for (let bache of baches) {
-    let x = offsetX + bache.x * scaledCuadra + scaledCuadra/2;
-    let y = offsetY + bache.y * scaledCuadra + scaledCuadra/2;
-    
     if (bacheIcon) {
-      let iconSize = scaledCuadra * 0.9;
+      let iconSize = SNAKE_SIZE * 1.2;
       
-      // Simple shadow effect
       drawingContext.shadowBlur = 10;
       drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
       
       push();
       imageMode(CENTER);
-      image(bacheIcon, x, y, iconSize, iconSize);
+      image(bacheIcon, bache.x, bache.y, iconSize, iconSize);
       pop();
       
       drawingContext.shadowBlur = 0;
@@ -1237,19 +1195,18 @@ function dibujarBaches() {
       // Fallback circle rendering
       noStroke();
       fill(COLOR_BACHE);
-      let size = scaledCuadra * 0.8;
+      let size = SNAKE_SIZE * 1.2;
       
-      // Draw main bache shape
-      ellipse(x, y, size, size);
+      ellipse(bache.x, bache.y, size, size);
       
-      // Add simple texture details
+      // Add texture details
       fill(60);
       for (let i = 0; i < 3; i++) {
-        let detailSize = 3 * scale;
+        let detailSize = 3;
         let angle = random(TWO_PI);
         let distance = random(size/4);
-        let detailX = x + cos(angle) * distance;
-        let detailY = y + sin(angle) * distance;
+        let detailX = bache.x + cos(angle) * distance;
+        let detailY = bache.y + sin(angle) * distance;
         ellipse(detailX, detailY, detailSize, detailSize);
       }
     }
@@ -1495,4 +1452,116 @@ function drawSpaceBackground() {
     ellipse(star.x, star.y, size, size);
   }
   drawingContext.shadowBlur = 0;
+}
+
+// Add the missing function for multiplayer collisions
+function checkPlayerCollisions(cabeza) {
+  let collidedPlayer = null;
+  otherPlayers.forEach((player, playerName) => {
+    if (player.snake) {
+      // Check head-to-head collision
+      if (player.snake[0] && 
+          dist(cabeza.x, cabeza.y, player.snake[0].x, player.snake[0].y) < SNAKE_SIZE) {
+        collidedPlayer = playerName;
+        return;
+      }
+      // Check collision with other player's body
+      for (let i = 1; i < player.snake.length; i++) {
+        if (dist(cabeza.x, cabeza.y, player.snake[i].x, player.snake[i].y) < SNAKE_SIZE) {
+          collidedPlayer = playerName;
+          return;
+        }
+      }
+    }
+  });
+  return collidedPlayer;
+}
+
+// Add function to handle WebSocket initialization
+function initializeWebSocket(startX, startY) {
+  try {
+    ws = new WebSocket('wss://evening-peridot-screw.glitch.me');
+    
+    ws.onopen = () => {
+      console.log('Connected to game server');
+      ws.send(JSON.stringify({
+        type: 'join',
+        name: nombreJugador,
+        position: {x: startX, y: startY},
+        snake: snake,
+        score: puntaje
+      }));
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      handleWebSocketMessage(data);
+    };
+    
+    ws.onerror = (error) => {
+      console.log('WebSocket error:', error);
+      ws = null;
+      otherPlayers.clear();
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+      ws = null;
+      otherPlayers.clear();
+    };
+  } catch (error) {
+    console.log('Failed to initialize WebSocket:', error);
+    ws = null;
+    otherPlayers.clear();
+  }
+}
+
+// Add function to handle WebSocket messages
+function handleWebSocketMessage(data) {
+  switch(data.type) {
+    case 'gameState':
+      otherPlayers.clear();
+      data.players.forEach(player => {
+        if (player.name !== nombreJugador) {
+          otherPlayers.set(player.name, {
+            ...player,
+            lastUpdate: Date.now()
+          });
+        } else {
+          myColor = player.color;
+        }
+      });
+      break;
+      
+    case 'playerLeft':
+      otherPlayers.delete(data.name);
+      break;
+      
+    case 'playerRestart':
+      if (data.name !== nombreJugador) {
+        otherPlayers.set(data.name, {
+          name: data.name,
+          snake: [{x: data.position.x, y: data.position.y}],
+          color: data.color,
+          score: 0,
+          lastUpdate: Date.now()
+        });
+      }
+      break;
+  }
+}
+
+// Add function to send player updates
+function sendPlayerUpdate(cabeza) {
+  const now = Date.now();
+  if (now - lastUpdateTime > UPDATE_INTERVAL && ws && ws.readyState === WebSocket.OPEN) {
+    lastUpdateTime = now;
+    ws.send(JSON.stringify({
+      type: 'update',
+      name: nombreJugador,
+      position: cabeza,
+      snake: snake,
+      score: puntaje
+    }));
+  }
 } 
