@@ -9,15 +9,14 @@ const GRILLA_ANCHO = 30;
 const GRILLA_ALTO = 30;
 const VENTANA_ANCHO = TAMANIO_CUADRA * GRILLA_ANCHO; // 600
 const VENTANA_ALTO = TAMANIO_CUADRA * GRILLA_ALTO;   // 600
-
-// Multiplayer Variables
-let ws;
-let otherPlayers = new Map();
-let myColor;
-let lastUpdateTime = 0;
+const NUM_PARTICLES = 50;
+const PARTICLE_SPEED = 0.5;
+const NUM_STARS = 200;
+const NUM_BACHES = 15; // Increased number of baches
+const DRINKING_DURATION = 500; // Animation duration in milliseconds
 const UPDATE_INTERVAL = 16; // Increased update frequency (approximately 60fps)
 
-// Darker neighborhood colors for better contrast
+// Color Constants
 const COLOR_RECOLETA = [200, 200, 210];
 const COLOR_PALERMO = [180, 210, 180];
 const COLOR_COLEGIALES = [180, 190, 210];
@@ -33,6 +32,76 @@ const COLOR_BUTTON = [50, 120, 200];
 const COLOR_BUTTON_HOVER = [70, 140, 220];
 const COLOR_NEIGHBORHOOD_LABEL_BG = [30, 30, 30, 180];
 const COLOR_NEIGHBORHOOD_LABEL_TEXT = [255, 255, 255];
+
+// Background Colors
+const BACKGROUND_COLORS = [
+  [200, 200, 200], // Default gray
+  [173, 216, 230], // Light blue
+  [144, 238, 144], // Light green
+  [255, 182, 193], // Light pink
+  [255, 218, 185], // Peach
+  [221, 160, 221]  // Plum
+];
+
+// Space Colors
+const SPACE_COLORS = [
+  [20, 20, 40],    // Deep space blue
+  [40, 20, 40],    // Purple space
+  [20, 40, 40],    // Teal space
+  [40, 20, 20],    // Red space
+  [30, 40, 20],    // Green space
+  [40, 30, 20]     // Orange space
+];
+
+// UI Constants
+const SIDEBAR_WIDTH = 200; // Width of the sidebar
+const SECTION_PADDING = 15; // Padding inside sidebar sections
+const SECTION_MARGIN = 10; // Margin between sidebar sections
+
+// Multiplayer Variables
+let ws;
+let otherPlayers = new Map();
+let myColor = COLOR_VIBORITA; // Initialize with default color
+let lastUpdateTime = 0;
+
+// Game Variables
+let snake = [];
+let direction = { x: 0, y: 0 };
+let cafe = null;
+let cafeActual = '';
+let baches = [];
+let puntaje = 0;
+let nombreJugador = "";
+let ingresandoNombre = true;
+let textoNombre = "";
+let juegoTerminado = false;
+const velocidadInicial = 12; // Increased from 8
+let velocidadActual = velocidadInicial;
+let cafeIcon; // Variable to store the coffee icon image
+let bacheIcon; // Variable to store the pothole icon image
+let colisionJugador = null;
+let gameOverReason = '';
+
+// Background Variables
+let particles = [];
+let currentNeighborhood = '';
+let currentBackgroundIndex = 0;
+let backgroundTransitionProgress = 0;
+let currentSpaceIndex = 0;
+let spaceTransitionProgress = 0;
+let stars = [];
+
+// Animation Variables
+let drinkingCoffee = false;
+let drinkingAnimation = 0;
+let drinkingStartTime = 0;
+let lastCoffeePosition = null;
+
+// YouTube Variables
+let isPlaying = true; // Start with music playing
+const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?enablejsapi=1&autoplay=1&loop=1&controls=0&modestbranding=1`;
+let youtubePlayer = null;
 
 // Updated café data structure organized by neighborhood
 const CAFES_BA = {
@@ -105,56 +174,53 @@ let colisionJugador = null;
 let gameOverReason = '';
 
 // Add new variables for background effects at the top with other game variables
-let particles = [];
-const NUM_PARTICLES = 50;
-const PARTICLE_SPEED = 0.5;
+// let particles = [];
 
 // Add current neighborhood tracking
-let currentNeighborhood = '';
+// let currentNeighborhood = '';
 
 // Add new variables for YouTube integration
-let isPlaying = true; // Start with music playing
-const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
-const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?enablejsapi=1&autoplay=1&loop=1&controls=0&modestbranding=1`;
-let youtubePlayer = null;
+// let isPlaying = true; // Start with music playing
+// const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
+// const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?enablejsapi=1&autoplay=1&loop=1&controls=0&modestbranding=1`;
+// let youtubePlayer = null;
 
 // Add these variables at the top with other constants
-const NUM_BACHES = 15; // Increased number of baches
-const BACKGROUND_COLORS = [
-  [200, 200, 200], // Default gray
-  [173, 216, 230], // Light blue
-  [144, 238, 144], // Light green
-  [255, 182, 193], // Light pink
-  [255, 218, 185], // Peach
-  [221, 160, 221]  // Plum
-];
-let currentBackgroundIndex = 0;
-let backgroundTransitionProgress = 0;
+// const NUM_BACHES = 15; // Increased number of baches
+// const BACKGROUND_COLORS = [
+//   [200, 200, 200], // Default gray
+//   [173, 216, 230], // Light blue
+//   [144, 238, 144], // Light green
+//   [255, 182, 193], // Light pink
+//   [255, 218, 185], // Peach
+//   [221, 160, 221]  // Plum
+// ];
+// let currentBackgroundIndex = 0;
+// let backgroundTransitionProgress = 0;
 
 // Add these variables at the top with other constants
-const SPACE_COLORS = [
-  [20, 20, 40],    // Deep space blue
-  [40, 20, 40],    // Purple space
-  [20, 40, 40],    // Teal space
-  [40, 20, 20],    // Red space
-  [30, 40, 20],    // Green space
-  [40, 30, 20]     // Orange space
-];
-let currentSpaceIndex = 0;
-let spaceTransitionProgress = 0;
-let stars = [];
-const NUM_STARS = 200;
+// const SPACE_COLORS = [
+//   [20, 20, 40],    // Deep space blue
+//   [40, 20, 40],    // Purple space
+//   [20, 40, 40],    // Teal space
+//   [40, 20, 20],    // Red space
+//   [30, 40, 20],    // Green space
+//   [40, 30, 20]     // Orange space
+// ];
+// let currentSpaceIndex = 0;
+// let stars = [];
 
 // Add new variables for coffee animation
-let drinkingCoffee = false;
-let drinkingAnimation = 0;
-let drinkingStartTime = 0;
-const DRINKING_DURATION = 500; // Animation duration in milliseconds
-let lastCoffeePosition = null;
+// let drinkingCoffee = false;
+// let drinkingAnimation = 0;
+// let drinkingStartTime = 0;
+// const DRINKING_DURATION = 500; // Animation duration in milliseconds
+// let lastCoffeePosition = null;
 
-// Add mobile detection at the top with other constants
-let isMobile = false;
-let hasTouchControls = false;
+// Constants for sidebar
+// const SIDEBAR_WIDTH = 200; // Width of the sidebar
+// const SECTION_PADDING = 15; // Padding inside sidebar sections
+// const SECTION_MARGIN = 10; // Margin between sidebar sections
 
 // P5.js Preload Function
 function preload() {
@@ -189,87 +255,53 @@ function preload() {
 
 // P5.js Setup Function
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  frameRate(velocidadActual);
-  textFont('Montserrat');
-  rectMode(CENTER);
-  ellipseMode(CENTER);
-  imageMode(CENTER);
+  // Create canvas with extra width for sidebar
+  createCanvas(windowWidth - 20, windowHeight - 20);
   
-  // Detect mobile device
-  isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-  
-  // If on mobile, set up touch controls
-  if (isMobile) {
-    setupMobileControls();
-  }
-  
-  // Create stars
+  // Initialize stars for space background
   for (let i = 0; i < NUM_STARS; i++) {
     stars.push({
-      x: random(width),
+      x: random(width - SIDEBAR_WIDTH),
       y: random(height),
       size: random(1, 3),
       brightness: random(100, 255)
     });
   }
   
-  // Create particles
+  // Initialize particles for background effects
   for (let i = 0; i < NUM_PARTICLES; i++) {
     particles.push({
-      x: random(width),
+      x: random(width - SIDEBAR_WIDTH),
       y: random(height),
-      size: random(1, 3),
+      size: random(2, 5),
       speed: random(0.2, 1) * PARTICLE_SPEED,
-      angle: random(TWO_PI)
+      direction: random(TWO_PI)
     });
   }
   
-  // Set framerate
-  frameRate(velocidadInicial);
-}
-
-// New function to set up mobile controls
-function setupMobileControls() {
-  hasTouchControls = true;
+  // Set text properties
+  textFont('Montserrat');
+  textAlign(CENTER, CENTER);
   
-  // Set up touch event listeners for mobile control buttons
-  document.getElementById('btn-up').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.y >= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: 0, y: -MOVE_SPEED};
-    }
-  });
-  
-  document.getElementById('btn-down').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.y <= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: 0, y: MOVE_SPEED};
-    }
-  });
-  
-  document.getElementById('btn-left').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.x >= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: -MOVE_SPEED, y: 0};
-    }
-  });
-  
-  document.getElementById('btn-right').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.x <= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: MOVE_SPEED, y: 0};
-    }
-  });
+  // Set frame rate
+  frameRate(velocidadActual);
 }
 
 // Window resize handler
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  // Update star positions for new window size
+  resizeCanvas(windowWidth - 20, windowHeight - 20);
+  
+  // Update star positions for new window size, respecting sidebar
+  const gameWidth = width - SIDEBAR_WIDTH;
   for (let star of stars) {
-    star.x = random(width);
+    star.x = random(gameWidth);
     star.y = random(height);
+  }
+  
+  // Update particle positions
+  for (let particle of particles) {
+    particle.x = random(gameWidth);
+    particle.y = random(height);
   }
 }
 
@@ -279,9 +311,9 @@ function draw() {
   drawSpaceBackground();
 
   if (ingresandoNombre) {
-    drawNombreIngreso();
+    dibujarModalNombre();
   } else if (juegoTerminado) {
-    drawGameOver();
+    dibujarModalGameOver();
   } else {
     jugar();
   }
@@ -296,199 +328,267 @@ function dibujarTablero() {
   dibujarNombre();
 }
 
-// Update drawNombreIngreso function to simplify the design and fix spacing
-function drawNombreIngreso() {
-  // First draw a completely opaque background to hide everything
-  push();
-  // Use a solid dark background
-  background(15, 15, 25);
+// Draw the name input modal
+function dibujarModalNombre() {
+  // Create a dynamic backdrop with a subtle gradient
+  background(20, 20, 30);
   
-  // Draw stars with very low opacity for subtle background
-  for (let star of stars) {
-    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
-    let alpha = map(twinkle, -1, 1, 10, 40);
-    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
-    
+  // Calculate responsive modal size based on window dimensions
+  let modalWidth = min(550, width * 0.8);
+  let modalHeight = min(480, height * 0.75); // Increased modal height for better spacing
+  
+  // Add subtle animation to the background
+  for (let i = 0; i < 20; i++) {
+    let size = random(2, 6);
+    let alpha = random(50, 150);
     fill(255, 255, 255, alpha);
     noStroke();
-    ellipse(star.x, star.y, size, size);
+    ellipse(random(width), random(height), size, size);
   }
   
-  // Calculate modal dimensions that work on both desktop and mobile
-  let modalWidth = min(550, width * 0.9);
-  let modalHeight = min(480, height * 0.75);
-  let inputWidth = modalWidth * 0.7;
+  // Drop shadow effect for the modal (multiple layers with decreasing opacity)
+  for (let i = 5; i > 0; i--) {
+    fill(0, 0, 0, 15);
+    rect(width/2, height/2 + i, modalWidth + i*2, modalHeight + i*2, 20);
+  }
   
-  // Draw modal background with rounded corners and stronger border
-  rectMode(CENTER);
-  fill(25, 25, 40, 240);
-  strokeWeight(3);
-  stroke(100, 100, 200, 200);
+  // Modal background with rounded corners
+  fill(COLOR_MODAL_BG);
   rect(width/2, height/2, modalWidth, modalHeight, 20);
   
-  // Add a subtle inner glow to the modal
-  noFill();
-  stroke(100, 100, 200, 50);
-  strokeWeight(1);
-  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
+  // Decorative header bar with gradient effect
+  let headerHeight = 60;
+  for (let i = 0; i < headerHeight; i++) {
+    let inter = map(i, 0, headerHeight, 0, 1);
+    let c = lerpColor(
+      color(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2]), 
+      color(COLOR_BUTTON_HOVER[0], COLOR_BUTTON_HOVER[1], COLOR_BUTTON_HOVER[2]), 
+      inter
+    );
+    fill(c);
+    rect(width/2, height/2 - modalHeight/2 + i/2, modalWidth, 1);
+  }
   
-  // Simple, evenly spaced layout
-  let titleY = height/2 - modalHeight * 0.3;
+  // Calculate vertical positions for better spacing
+  let titleY = height/2 - modalHeight/2 + headerHeight + 50;
   let subtitleY = titleY + 45;
-  let labelY = height/2 - 30;
-  let inputY = height/2 + 20;
-  let buttonY = height/2 + modalHeight * 0.25;
+  let labelY = subtitleY + 80;
+  let inputY = labelY + 45;
+  let buttonY = inputY + 80;
+  let instructionsY = buttonY + 45;
   
-  // Draw title with clean, elegant styling - split into two lines to fit within modal
-  noStroke();
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
-  fill(255);
-  textSize(28);
+  // Draw coffee icons if the image is loaded (fallback to draw function if not)
+  let cupSize = 55; // Reducido ligeramente de 60 a 55 para mejor proporción
+  let cupSpacing = modalWidth * 0.42; // Aumentado para mayor separación
+  
+  // Use try/catch in case the image fails to load
+  try {
+    if (cafeIcon) {
+      // Left coffee cup
+      push();
+      imageMode(CENTER);
+      translate(width/2 - cupSpacing, titleY);
+      rotate(sin(frameCount * 0.02) * 0.05);
+      image(cafeIcon, 0, 0, cupSize, cupSize);
+      pop();
+    
+      // Right coffee cup
+      push();
+      imageMode(CENTER);
+      translate(width/2 + cupSpacing, titleY);
+      rotate(sin(frameCount * 0.02 + PI) * 0.05);
+      image(cafeIcon, 0, 0, cupSize, cupSize);
+      pop();
+    }
+  } catch (e) {
+    // Fallback to drawn coffee cup if image fails
+    push();
+    translate(width/2 - cupSpacing, titleY);
+    rotate(sin(frameCount * 0.02) * 0.05);
+    drawCoffeeCup(0, 0, cupSize);
+    pop();
+    
+    push();
+    translate(width/2 + cupSpacing, titleY);
+    rotate(sin(frameCount * 0.02 + PI) * 0.05);
+    drawCoffeeCup(0, 0, cupSize);
+    pop();
+  }
+  
+  // Title with shadow effect - positioned between coffee cups
   textAlign(CENTER, CENTER);
+  // Shadow
+  fill(0, 0, 0, 100);
+  textSize(36);
   textStyle(BOLD);
-  text('¡Bienvenido a', width/2, titleY - 20);
-  text('Viborita de Especialidad!', width/2, titleY + 20);
-  
-  // Draw subtitle
-  drawingContext.shadowBlur = 5;
-  textSize(16);
-  textStyle(NORMAL);
-  fill(200, 200, 200);
-  text('El juego de cafetería en Buenos Aires', width/2, subtitleY);
-  
-  // Draw input label
+  text("VIBORITA INDIE BA", width/2 + 2, titleY + 2);
+  // Text
   fill(255);
+  text("VIBORITA INDIE BA", width/2, titleY);
+  
+  // Subtitle with improved spacing
   textSize(18);
   textStyle(NORMAL);
-  text('Ingresá tu nombre:', width/2, labelY);
+  fill(220);
+  text("Una viborita también quiere tomar un cafecito porteño", width/2, subtitleY);
   
-  // Draw input box with clean styling
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(100, 100, 255, 0.3)';
-  fill(35, 35, 55);
-  stroke(isMobile ? '#4286f4' : '#6464c8');
-  strokeWeight(2);
-  rect(width/2, inputY, inputWidth, 50, 10);
+  // Label with better positioning and spacing
+  textSize(18);
+  fill(200);
+  textStyle(BOLD);
+  text("¿CÓMO TE LLAMÁS?", width/2, labelY);
   
-  // Draw text input content
-  drawingContext.shadowBlur = 0;
+  // Input field with improved styling and size
+  let inputWidth = modalWidth * 0.7;
+  let inputHeight = 55;
+  
+  // Input field border glow effect
+  fill(40, 40, 50);
+  if (frameCount % 120 < 60) {
+    stroke(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2], 100);
+    strokeWeight(2);
+  } else {
+    noStroke();
+  }
+  rect(width/2, inputY, inputWidth, inputHeight, 28);
   noStroke();
-  fill(255);
-  textAlign(CENTER, CENTER);
-  textSize(20);
-  text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
   
-  // Add touch instructions for mobile
-  if (isMobile) {
-    textSize(14);
-    fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 40);
+  // Input text with animated cursor - centered in the input field
+  fill(255);
+  textSize(22);
+  textAlign(CENTER, CENTER);
+  text(textoNombre + (frameCount % 30 < 15 ? "|" : ""), width/2, inputY);
+  
+  // Button with improved styling and positioning
+  if (textoNombre.length > 0) {
+    let buttonX = width/2;
+    let buttonWidth = inputWidth * 0.6;
+    let buttonHeight = 55;
     
-    // Make input box clickable for mobile
-    if (mouseIsPressed && 
-        mouseX > width/2 - inputWidth/2 && 
-        mouseX < width/2 + inputWidth/2 && 
-        mouseY > inputY - 25 && 
-        mouseY < inputY + 25) {
-      let userInput = prompt('Ingresa tu nombre:', textoNombre);
-      if (userInput !== null) {
-        textoNombre = userInput.substring(0, 15); // Limit length
+    // Check if mouse is over button
+    let mouseOverButton = mouseX > buttonX - buttonWidth/2 && 
+                          mouseX < buttonX + buttonWidth/2 && 
+                          mouseY > buttonY - buttonHeight/2 && 
+                          mouseY < buttonY + buttonHeight/2;
+    
+    // Button shadow for depth
+    if (mouseOverButton) {
+      for (let i = 3; i > 0; i--) {
+        fill(0, 0, 0, 10);
+        rect(buttonX, buttonY + i, buttonWidth + i, buttonHeight, 28);
       }
     }
-  }
-  
-  // Draw start button with clean styling
-  let buttonWidth = inputWidth * 0.6;
-  let buttonHeight = 55;
-  let buttonHover = mouseX > width/2 - buttonWidth/2 && 
-                   mouseX < width/2 + buttonWidth/2 && 
-                   mouseY > buttonY - buttonHeight/2 && 
-                   mouseY < buttonY + buttonHeight/2;
-  
-  drawingContext.shadowBlur = buttonHover ? 15 : 10;
-  drawingContext.shadowColor = 'rgba(66, 134, 244, 0.5)';
-  fill(buttonHover ? '#4286f4' : '#2a5298');
-  stroke(100, 100, 200);
-  strokeWeight(2);
-  rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
-  
-  // Button text
-  drawingContext.shadowBlur = 0;
-  fill(255);
-  noStroke();
-  textSize(20);
-  textStyle(BOLD);
-  text('¡JUGAR!', width/2, buttonY);
-  
-  // Add instruction for mobile view if name is empty
-  if (isMobile && textoNombre.length === 0) {
-    fill(255, 200, 200);
+    
+    // Button background with gradient effect
+    if (mouseOverButton) {
+      // Gradient effect on hover
+      for (let i = 0; i < buttonHeight; i++) {
+        let inter = map(i, 0, buttonHeight, 0, 1);
+        let c = lerpColor(
+          color(COLOR_BUTTON_HOVER[0], COLOR_BUTTON_HOVER[1], COLOR_BUTTON_HOVER[2]), 
+          color(COLOR_BUTTON[0], COLOR_BUTTON[1], COLOR_BUTTON[2]), 
+          inter
+        );
+        fill(c);
+        rect(buttonX, buttonY - buttonHeight/2 + i, buttonWidth, 1);
+      }
+    } else {
+      fill(COLOR_BUTTON);
+      rect(buttonX, buttonY, buttonWidth, buttonHeight, 28);
+    }
+    
+    // Button text
+    fill(255);
+    textSize(20);
+    textStyle(BOLD);
+    text("COMENZAR", buttonX, buttonY);
+    
+    // Button icon (arrow)
+    let arrowX = buttonX + buttonWidth/2 - 30;
+    let arrowY = buttonY;
+    fill(255);
+    triangle(
+      arrowX - 10, arrowY - 5,
+      arrowX - 10, arrowY + 5,
+      arrowX, arrowY
+    );
+    
+    // Instructions with better positioning
     textSize(14);
     textStyle(NORMAL);
-    text('Por favor, ingresa un nombre para continuar', width/2, buttonY + 40);
+    fill(180);
+    text("Presiona ENTER para comenzar", width/2, instructionsY);
   }
-  
-  // Reset drawing settings
-  pop();
 }
 
-// Update the drawGameOver function to fix the spinner and improve spacing
-function drawGameOver() {
-  // First draw a completely opaque background to hide everything
-  push();
-  // Use a solid dark background
-  background(15, 15, 25);
+// Draw the game over modal
+function dibujarModalGameOver() {
+  // Semi-transparent dark backdrop with animation
+  rectMode(CORNER);
+  fill(0, 0, 0, 150);
+  rect(0, 0, width, height);
   
-  // Draw stars with very low opacity for subtle background
-  for (let star of stars) {
-    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
-    let alpha = map(twinkle, -1, 1, 10, 40);
-    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
-    
+  // Add subtle particles in the background
+  for (let i = 0; i < 15; i++) {
+    let size = random(2, 5);
+    let alpha = random(30, 100);
     fill(255, 255, 255, alpha);
     noStroke();
-    ellipse(star.x, star.y, size, size);
+    ellipse(random(width), random(height), size, size);
   }
   
   // Calculate modal dimensions
-  let modalWidth = min(500, width * 0.9);
-  let modalHeight = min(400, height * 0.7);
+  let modalWidth = 450;
+  let modalHeight = 380;
   
-  // Draw modal background with rounded corners and stronger border
+  // Modal shadow effect
+  drawingContext.shadowBlur = 30;
+  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  
+  // Modal background with gradient
   rectMode(CENTER);
-  fill(25, 25, 40, 240);
-  strokeWeight(3);
-  stroke(200, 70, 70, 200);
+  let gradient = drawingContext.createLinearGradient(
+    width/2 - modalWidth/2, height/2 - modalHeight/2,
+    width/2 + modalWidth/2, height/2 + modalHeight/2
+  );
+  gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
+  gradient.addColorStop(1, 'rgba(25, 25, 35, 0.95)');
+  drawingContext.fillStyle = gradient;
   rect(width/2, height/2, modalWidth, modalHeight, 20);
   
-  // Add a subtle inner glow to the modal
-  noFill();
-  stroke(200, 70, 70, 50);
-  strokeWeight(1);
-  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
+  // Decorative header bar
+  let headerHeight = 60;
+  for (let i = 0; i < headerHeight; i++) {
+    let inter = map(i, 0, headerHeight, 0, 1);
+    let c = lerpColor(
+      color(200, 70, 70, 200),
+      color(150, 50, 50, 200),
+      inter
+    );
+    fill(c);
+    rect(width/2, height/2 - modalHeight/2 + i/2, modalWidth, 1);
+  }
   
-  // Simple, evenly spaced layout
-  let titleY = height/2 - modalHeight * 0.35;
-  let reasonY = titleY + 70;
-  let scoreY = reasonY + 70;
-  let buttonY = height/2 + modalHeight * 0.3;
+  // Reset shadow
+  drawingContext.shadowBlur = 0;
   
   // Game Over text with glow effect
-  noStroke();
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
   textAlign(CENTER, CENTER);
-  textSize(38);
+  textSize(42);
   textStyle(BOLD);
   fill(255);
-  text('¡GAME OVER!', width/2, titleY);
+  text('¡GAME OVER!', width/2, height/2 - modalHeight/2 + headerHeight + 30);
   
   // Game over reason with icon
   drawingContext.shadowBlur = 0;
-  textSize(22);
+  textSize(24);
   fill(220, 220, 220);
   textStyle(NORMAL);
+  
+  // Position for the reason text
+  let reasonY = height/2 - 40;
   
   if (colisionJugador) {
     text(`¡Chocaste con ${colisionJugador}!`, width/2, reasonY);
@@ -507,18 +607,20 @@ function drawGameOver() {
   }
   
   // Score display with enhanced styling
-  textSize(18);
+  let scoreY = height/2 + 30;
+  textSize(20);
   fill(180, 180, 180);
   text('PUNTAJE FINAL', width/2, scoreY - 25);
   
-  textSize(42);
+  textSize(48);
   textStyle(BOLD);
   fill(255, 255, 220);
-  text(puntaje, width/2, scoreY + 15);
+  text(puntaje, width/2, scoreY + 20);
   
   // Restart button with hover effect
-  let buttonWidth = modalWidth * 0.5;
-  let buttonHeight = 55;
+  let buttonY = height/2 + 120;
+  let buttonWidth = 220;
+  let buttonHeight = 50;
   
   // Check if mouse is over button
   let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
@@ -527,52 +629,73 @@ function drawGameOver() {
                        mouseY < buttonY + buttonHeight/2;
   
   // Button shadow and glow
-  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
+  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
   drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
   
-  // Button with clean styling
-  fill(mouseOverButton ? '#4286f4' : '#2a5298');
-  stroke(100, 100, 200);
-  strokeWeight(2);
-  rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
+  // Button gradient
+  gradient = drawingContext.createLinearGradient(
+    width/2 - buttonWidth/2, buttonY - buttonHeight/2,
+    width/2 + buttonWidth/2, buttonY + buttonHeight/2
+  );
   
-  // Button text
-  drawingContext.shadowBlur = 0;
+  if (mouseOverButton) {
+    gradient.addColorStop(0, 'rgba(70, 140, 220, 1)');
+    gradient.addColorStop(1, 'rgba(50, 120, 200, 1)');
+  } else {
+    gradient.addColorStop(0, 'rgba(50, 120, 200, 1)');
+    gradient.addColorStop(1, 'rgba(40, 100, 180, 1)');
+  }
+  
+  drawingContext.fillStyle = gradient;
+  rect(width/2, buttonY, buttonWidth, buttonHeight, buttonHeight/2);
+  
+  // Button text with shadow
   fill(255);
-  noStroke();
   textSize(20);
   textStyle(BOLD);
   text('JUGAR DE NUEVO', width/2, buttonY);
   
-  // Add different instructions for mobile vs desktop
+  // Button icon (restart arrow)
+  push();
+  translate(width/2 + buttonWidth/2 - 35, buttonY);
+  rotate(frameCount * 0.05); // Rotating animation
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  arc(0, 0, 20, 20, -PI/2, PI);
+  // Arrow head
+  line(4, -5, 10, 0);
+  line(4, 5, 10, 0);
+  pop();
+  
+  // Instructions text
   textSize(16);
   textStyle(NORMAL);
   fill(150, 150, 150);
-  if (isMobile) {
-    text('Toca el botón para jugar de nuevo', width/2, buttonY + 45);
-  } else {
-    text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 45);
-  }
+  text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 50);
   
-  // Reset drawing settings
-  pop();
+  drawingContext.shadowBlur = 0;
 }
 
-// Update mousePressed function to match the new game over button position
+// Handle mouse clicks
 function mousePressed() {
   if (ingresandoNombre && textoNombre.length > 0) {
-    let modalWidth = min(550, width * 0.9);
-    let modalHeight = min(480, height * 0.75);
+    let modalWidth = min(550, width * 0.8);
     let inputWidth = modalWidth * 0.7;
     let buttonWidth = inputWidth * 0.6;
     let buttonHeight = 55;
     
-    // Use the same button position as in the drawing function
-    let buttonY = height/2 + modalHeight * 0.25;
+    // Calculate vertical positions for consistent spacing
+    let titleY = height/2 - min(480, height * 0.75)/2 + 60 + 50;
+    let subtitleY = titleY + 45;
+    let labelY = subtitleY + 80;
+    let inputY = labelY + 45;
+    let buttonY = inputY + 80;
     
-    // Check if button was clicked
-    if (mouseX > width/2 - buttonWidth/2 && 
-        mouseX < width/2 + buttonWidth/2 && 
+    let buttonX = width/2;
+    
+    if (mouseX > buttonX - buttonWidth/2 && 
+        mouseX < buttonX + buttonWidth/2 && 
         mouseY > buttonY - buttonHeight/2 && 
         mouseY < buttonY + buttonHeight/2) {
       nombreJugador = textoNombre;
@@ -580,23 +703,29 @@ function mousePressed() {
       iniciarJuego();
     }
   } else if (juegoTerminado) {
-    let modalWidth = min(500, width * 0.9);
-    let modalHeight = min(400, height * 0.7);
-    let buttonWidth = modalWidth * 0.5;
-    let buttonHeight = 55;
-    let buttonY = height/2 + modalHeight * 0.3;
+    let buttonX = width/2;
+    let buttonY = height/2 + 120;
+    let buttonWidth = 200;
+    let buttonHeight = 40;
     
-    if (mouseX > width/2 - buttonWidth/2 && 
-        mouseX < width/2 + buttonWidth/2 && 
+    if (mouseX > buttonX - buttonWidth/2 && 
+        mouseX < buttonX + buttonWidth/2 && 
         mouseY > buttonY - buttonHeight/2 && 
         mouseY < buttonY + buttonHeight/2) {
       reiniciarJuego();
     }
   } else {
-    // Check for music control button click in header
+    // Check for music control button click in sidebar
+    const sidebarX = width - SIDEBAR_WIDTH;
     let buttonSize = 40;
-    let x = width - 45;
-    let y = 30;
+    
+    // Calculate music button position (same as in drawGameUI)
+    let currentY = SECTION_MARGIN;
+    currentY += 80 + SECTION_MARGIN; // Skip player info section
+    currentY += 80 + SECTION_MARGIN; // Skip neighborhood section
+    
+    let x = sidebarX + SIDEBAR_WIDTH/2;
+    let y = currentY + SECTION_PADDING + 35;
     
     if (dist(mouseX, mouseY, x, y) < buttonSize/2) {
       isPlaying = !isPlaying;
@@ -665,8 +794,10 @@ function iniciarJuego() {
   velocidadActual = velocidadInicial;
   frameRate(velocidadActual);
   
-  // Set default color for single player mode
-  myColor = COLOR_VIBORITA;
+  // Make sure myColor is initialized
+  if (!myColor) {
+    myColor = COLOR_VIBORITA;
+  }
   
   // Initialize WebSocket connection
   initializeWebSocket(startX, startY);
@@ -674,8 +805,11 @@ function iniciarJuego() {
 
 // Restart the game after game over
 function reiniciarJuego() {
-  // Generate random starting position
-  const startX = random(SNAKE_SIZE, width - SNAKE_SIZE);
+  // Calculate game area width
+  const gameWidth = width - SIDEBAR_WIDTH;
+  
+  // Generate random starting position within game area
+  const startX = random(SNAKE_SIZE, gameWidth - SNAKE_SIZE);
   const startY = random(SNAKE_SIZE, height - SNAKE_SIZE);
   
   // Reset game state
@@ -866,17 +1000,20 @@ function drawNeighborhoodLabel(name, x, y) {
 
 // Move the viborita based on current direction
 function moverViborita() {
+  // Calculate new head position
   let cabeza = {
     x: snake[0].x + direction.x,
     y: snake[0].y + direction.y
   };
   
-  // Check border collision
-  if (cabeza.x < 0 || cabeza.x > width || cabeza.y < 0 || cabeza.y > height) {
-    juegoTerminado = true;
-    gameOverReason = 'border';
-    return;
-  }
+  // Check border collision with respect to sidebar
+  const gameWidth = width - SIDEBAR_WIDTH;
+  
+  // Wrap around the screen instead of ending the game
+  if (cabeza.x < 0) cabeza.x = gameWidth;
+  if (cabeza.x > gameWidth) cabeza.x = 0;
+  if (cabeza.y < 0) cabeza.y = height;
+  if (cabeza.y > height) cabeza.y = 0;
   
   // Check collision with other players only if not drinking
   if (!drinkingCoffee) {
@@ -923,6 +1060,13 @@ function moverViborita() {
 
 // Draw the viborita on the canvas
 function dibujarViborita() {
+  const gameWidth = width - SIDEBAR_WIDTH;
+  
+  // Make sure myColor is defined
+  if (!myColor) {
+    myColor = COLOR_VIBORITA;
+  }
+  
   // Draw other players' snakes
   otherPlayers.forEach((player) => {
     if (player.snake) {
@@ -931,6 +1075,10 @@ function dibujarViborita() {
       // Draw body segments
       for (let i = player.snake.length - 1; i > 0; i--) {
         let segmento = player.snake[i];
+        
+        // Skip if segment is outside game area
+        if (segmento.x < 0 || segmento.x > gameWidth || segmento.y < 0 || segmento.y > height) continue;
+        
         let alpha = map(i, 0, player.snake.length - 1, 255, 150);
         fill(player.color[0], player.color[1], player.color[2], alpha);
         rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
@@ -939,81 +1087,91 @@ function dibujarViborita() {
       // Draw head with player name
       if (player.snake.length > 0) {
         let cabeza = player.snake[0];
-        fill(player.color[0], player.color[1], player.color[2]);
-        rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
         
-        // Draw player name above head
+        // Skip if head is outside game area
+        if (cabeza.x < 0 || cabeza.x > gameWidth || cabeza.y < 0 || cabeza.y > height) return;
+        
+        // Make sure player.color is defined
+        const playerColor = player.color || COLOR_VIBORITA;
+        fill(playerColor[0], playerColor[1], playerColor[2]);
+        rect(cabeza.x, cabeza.y, SNAKE_SIZE + 2, SNAKE_SIZE + 2, 6);
+        
+        // Draw player name
         fill(255);
-        textSize(14);
-        textAlign(CENTER, BOTTOM);
-        text(player.name, cabeza.x, cabeza.y - SNAKE_SIZE);
+        textAlign(CENTER);
+        textSize(12);
+        text(player.name, cabeza.x, cabeza.y - SNAKE_SIZE - 5);
       }
     }
   });
   
-  // Reset drawing settings
-  noStroke();
-  rectMode(CENTER);
-  
-  // Draw local player's snake body
+  // Draw local player's snake
+  // Draw body segments
   for (let i = snake.length - 1; i > 0; i--) {
-    let segmento = snake[i];
+    // Skip if segment is outside game area
+    if (snake[i].x < 0 || snake[i].x > gameWidth || snake[i].y < 0 || snake[i].y > height) continue;
+    
+    // Make sure myColor is defined
+    const snakeColor = myColor || COLOR_VIBORITA;
     let alpha = map(i, 0, snake.length - 1, 255, 150);
-    fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
-         myColor ? myColor[1] : COLOR_VIBORITA[1], 
-         myColor ? myColor[2] : COLOR_VIBORITA[2], 
-         alpha);
-    rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
+    fill(snakeColor[0], snakeColor[1], snakeColor[2], alpha);
+    rect(snake[i].x, snake[i].y, SNAKE_SIZE, SNAKE_SIZE, 5);
   }
   
   // Draw head
-  let cabeza = snake[0];
-  fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
-       myColor ? myColor[1] : COLOR_VIBORITA[1], 
-       myColor ? myColor[2] : COLOR_VIBORITA[2]);
-  rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
-  
-  // Draw player name
-  fill(255);
-  textSize(14);
-  textAlign(CENTER, BOTTOM);
-  text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
-  
-  // Draw eyes
-  fill(255);
-  let eyeSize = 5;
-  let eyeSpacing = 8;
-  let eyeY = cabeza.y - 4;
-  
-  // Adjust eye positions based on direction
-  if (direction.x !== 0) {
-    // Moving horizontally
-    let eyeX1 = cabeza.x - eyeSpacing/2;
-    let eyeX2 = cabeza.x + eyeSpacing/2;
-    if (direction.x > 0) { // Moving right
-      eyeX1 += 2;
-      eyeX2 += 2;
-    } else { // Moving left
-      eyeX1 -= 2;
-      eyeX2 -= 2;
+  if (snake.length > 0) {
+    let cabeza = snake[0];
+    
+    // Skip if head is outside game area
+    if (cabeza.x < 0 || cabeza.x > gameWidth || cabeza.y < 0 || cabeza.y > height) return;
+    
+    // Make sure myColor is defined
+    const snakeColor = myColor || COLOR_VIBORITA;
+    fill(snakeColor[0], snakeColor[1], snakeColor[2]);
+    rect(cabeza.x, cabeza.y, SNAKE_SIZE + 2, SNAKE_SIZE + 2, 6);
+    
+    // Draw player name
+    fill(255);
+    textSize(14);
+    textAlign(CENTER, BOTTOM);
+    text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
+    
+    // Draw eyes
+    fill(255);
+    let eyeSize = 5;
+    let eyeSpacing = 8;
+    let eyeY = cabeza.y - 4;
+    
+    // Adjust eye positions based on direction
+    if (direction.x !== 0) {
+      // Moving horizontally
+      let eyeX1 = cabeza.x - eyeSpacing/2;
+      let eyeX2 = cabeza.x + eyeSpacing/2;
+      if (direction.x > 0) { // Moving right
+        eyeX1 += 2;
+        eyeX2 += 2;
+      } else { // Moving left
+        eyeX1 -= 2;
+        eyeX2 -= 2;
+      }
+      ellipse(eyeX1, eyeY, eyeSize, eyeSize);
+      ellipse(eyeX2, eyeY, eyeSize, eyeSize);
+    } else if (direction.y !== 0) {
+      // Moving vertically
+      let eyeX1 = cabeza.x - eyeSpacing/2;
+      let eyeX2 = cabeza.x + eyeSpacing/2;
+      if (direction.y > 0) { // Moving down
+        eyeY += 2;
+      } else { // Moving up
+        eyeY -= 2;
+      }
+      ellipse(eyeX1, eyeY, eyeSize, eyeSize);
+      ellipse(eyeX2, eyeY, eyeSize, eyeSize);
+    } else {
+      // Not moving
+      ellipse(cabeza.x - eyeSpacing/2, eyeY, eyeSize, eyeSize);
+      ellipse(cabeza.x + eyeSpacing/2, eyeY, eyeSize, eyeSize);
     }
-    ellipse(eyeX1, eyeY, eyeSize, eyeSize);
-    ellipse(eyeX2, eyeY, eyeSize, eyeSize);
-  } else if (direction.y !== 0) {
-    // Moving vertically
-    let eyeX1 = cabeza.x - eyeSpacing/2;
-    let eyeX2 = cabeza.x + eyeSpacing/2;
-    if (direction.y > 0) { // Moving down
-      eyeY += 2;
-    } else { // Moving up
-      eyeY -= 2;
-    }
-    ellipse(eyeX1, eyeY, eyeSize, eyeSize);
-    ellipse(eyeX2, eyeY, eyeSize, eyeSize);
-  } else {
-    // Not moving
-    ellipse(cabeza.x - eyeSpacing/2, eyeY, eyeSize, eyeSize);
-    ellipse(cabeza.x + eyeSpacing/2, eyeY, eyeSize, eyeSize);
   }
   
   // Draw drinking animation
@@ -1026,7 +1184,7 @@ function dibujarViborita() {
     } else {
       // Happy eyes (slightly larger during drinking)
       let blinkPhase = sin(frameCount * 0.5);
-      eyeSize = map(blinkPhase, -1, 1, 4, 7);
+      let eyeSize = map(blinkPhase, -1, 1, 4, 7);
       
       // Draw happy mouth
       stroke(255);
@@ -1090,52 +1248,16 @@ function drawCoffeeEffect(x, y, progress) {
 
 // Generate a new café at a random unoccupied position
 function generarCafe() {
-  let attempts = 0;
-  const maxAttempts = 50;
+  const gameWidth = width - SIDEBAR_WIDTH;
+  let x, y, neighborhood;
   
-  // Define margins to keep coffee away from edges
-  const MARGIN = 60; // Margin from edges of the screen
-  const HEADER_MARGIN = 80; // Extra margin from the top for the header
+  do {
+    x = floor(random(gameWidth));
+    y = floor(random(height));
+    neighborhood = getNeighborhoodFromPosition(x, y);
+  } while (!neighborhood || colisionConBaches({x, y}));
   
-  while (attempts < maxAttempts) {
-    let pos = {
-      x: random(MARGIN, width - MARGIN),
-      y: random(HEADER_MARGIN, height - MARGIN)
-    };
-    
-    // Check if position is far enough from snake and baches
-    let validPosition = true;
-    
-    // Check distance from snake
-    for (let part of snake) {
-      if (dist(pos.x, pos.y, part.x, part.y) < SNAKE_SIZE * 2) {
-        validPosition = false;
-        break;
-      }
-    }
-    
-    // Check distance from baches
-    for (let bache of baches) {
-      if (dist(pos.x, pos.y, bache.x, bache.y) < SNAKE_SIZE * 2) {
-        validPosition = false;
-        break;
-      }
-    }
-    
-    if (validPosition) {
-      // Update current neighborhood based on screen quadrants
-      currentNeighborhood = getNeighborhoodFromPosition(pos.x, pos.y);
-      return pos;
-    }
-    
-    attempts++;
-  }
-  
-  // Fallback position if no valid position found - use center with margins
-  return {
-    x: width/2,
-    y: height/2 + 40 // Offset from center to avoid header
-  };
+  return {x, y};
 }
 
 // Draw a coffee cup icon
@@ -1179,6 +1301,14 @@ function drawCoffeeCup(x, y, size) {
 // Draw the café on the canvas with improved display
 function dibujarCafe() {
   if (!cafe) return;
+  
+  // Check if cafe is within game area
+  const gameWidth = width - SIDEBAR_WIDTH;
+  if (cafe.x < 0 || cafe.x > gameWidth || cafe.y < 0 || cafe.y > height) {
+    // Generate a new cafe if it's outside the game area
+    cafe = generarCafe();
+    return;
+  }
   
   if (cafeIcon) {
     let iconSize = SNAKE_SIZE * 1.2;
@@ -1225,49 +1355,48 @@ function dibujarCafe() {
 
 // Generate a new bache at a random unoccupied position - Simplified version
 function generarBache() {
-  let attempts = 0;
-  const maxAttempts = 50;
+  const gameWidth = width - SIDEBAR_WIDTH;
+  let x, y;
+  let intentos = 0;
+  const MAX_INTENTOS = 50;
   
-  while (attempts < maxAttempts) {
-    let pos = {
-      x: random(SNAKE_SIZE, width - SNAKE_SIZE),
-      y: random(SNAKE_SIZE, height - SNAKE_SIZE)
-    };
+  do {
+    x = floor(random(gameWidth));
+    y = floor(random(height));
+    intentos++;
     
-    // Check if position is far enough from snake, cafe, and other baches
-    let validPosition = true;
-    
-    // Check distance from snake
-    for (let part of snake) {
-      if (dist(pos.x, pos.y, part.x, part.y) < SNAKE_SIZE * 3) {
-        validPosition = false;
+    // Avoid placing baches too close to the snake
+    let demasiadoCerca = false;
+    for (let segmento of snake) {
+      if (dist(x, y, segmento.x, segmento.y) < SNAKE_SIZE * 3) {
+        demasiadoCerca = true;
         break;
       }
     }
     
-    // Check distance from cafe
-    if (cafe && dist(pos.x, pos.y, cafe.x, cafe.y) < SNAKE_SIZE * 3) {
-      validPosition = false;
+    // If we've tried too many times, give up to avoid infinite loop
+    if (intentos >= MAX_INTENTOS) {
+      return null;
     }
     
-    // Check distance from other baches
-    for (let bache of baches) {
-      if (dist(pos.x, pos.y, bache.x, bache.y) < SNAKE_SIZE * 3) {
-        validPosition = false;
-        break;
-      }
+    // Also avoid placing baches too close to the cafe
+    if (cafe && dist(x, y, cafe.x, cafe.y) < SNAKE_SIZE * 3) {
+      demasiadoCerca = true;
     }
     
-    if (validPosition) return pos;
-    attempts++;
-  }
+  } while (demasiadoCerca);
   
-  return null;
+  return {x, y};
 }
 
 // Draw the baches on the canvas
 function dibujarBaches() {
+  const gameWidth = width - SIDEBAR_WIDTH;
+  
   for (let bache of baches) {
+    // Skip if bache is outside game area
+    if (bache.x < 0 || bache.x > gameWidth || bache.y < 0 || bache.y > height) continue;
+    
     if (bacheIcon) {
       let iconSize = SNAKE_SIZE * 1.2;
       
@@ -1363,13 +1492,6 @@ function jugar() {
   // Clean up inactive players
   cleanupInactivePlayers();
   
-  // Draw header UI
-  drawGameUI();
-  
-  // Translate everything below the header
-  push();
-  translate(0, 60); // Translate by header height
-  
   // Move snake and check collisions
   if (direction.x !== 0 || direction.y !== 0) {
     moverViborita();
@@ -1381,81 +1503,60 @@ function jugar() {
   dibujarCafe();
   dibujarViborita();
   
-  pop();
+  // Draw sidebar UI (after game elements so it's on top)
+  drawGameUI();
 }
 
 // Draw the game UI with player name and score
 function drawGameUI() {
-  // Header dimensions
-  let headerHeight = 60;
+  // Sidebar dimensions
+  const sidebarX = width - SIDEBAR_WIDTH;
   
-  // Draw header background with space theme
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  
-  // Header background with gradient
+  // Draw sidebar background with gradient
+  noStroke();
   let headerGradient = drawingContext.createLinearGradient(
-    0, 0,
-    0, headerHeight
+    sidebarX, 0,
+    width, 0
   );
-  headerGradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
-  headerGradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
+  headerGradient.addColorStop(0, 'rgba(20, 20, 40, 0.95)'); // More opaque
+  headerGradient.addColorStop(1, 'rgba(40, 40, 80, 0.95)'); // More opaque
   drawingContext.fillStyle = headerGradient;
+  rect(sidebarX, 0, SIDEBAR_WIDTH, height);
   
-  // Draw header rectangle
-  rect(width/2, headerHeight/2, width, headerHeight);
-  
-  // Add subtle line separator
-  stroke(100, 200, 255, 100);
-  strokeWeight(2);
-  line(0, headerHeight, width, headerHeight);
+  // Add stronger separator line
+  stroke(100, 100, 200, 150); // Brighter color
+  strokeWeight(3); // Thicker line
+  line(sidebarX, 0, sidebarX, height);
   noStroke();
   
-  // Reset shadow
-  drawingContext.shadowBlur = 0;
+  // Current section Y position tracker
+  let currentY = SECTION_MARGIN;
   
-  // Current neighborhood (center)
-  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
-  textAlign(CENTER, CENTER);
-  
-  // Neighborhood label
-  fill(180, 180, 180);
-  textSize(14);
-  textStyle(NORMAL);
-  text("BARRIO ACTUAL", width/2, headerHeight/2 - 12);
-  
-  // Neighborhood name with glow
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-  fill(255);
-  textSize(24);
-  textStyle(BOLD);
-  text(currentNeighborhood, width/2, headerHeight/2 + 12);
-  drawingContext.shadowBlur = 0;
-  
-  // Player section (left)
-  textAlign(LEFT, CENTER);
-  
-  // Player label
-  fill(180, 180, 180);
-  textSize(14);
-  textStyle(NORMAL);
-  text("JUGADOR", 30, headerHeight/2 - 12);
+  // SECTION 1: Player info
+  fill(255, 255, 255, 30);
+  rect(sidebarX + SECTION_MARGIN, currentY, SIDEBAR_WIDTH - SECTION_MARGIN*2, 80, 5);
   
   // Player name
-  fill(255);
-  textSize(20);
-  textStyle(BOLD);
-  text(nombreJugador, 30, headerHeight/2 + 12);
-  
-  // Score section (right)
-  textAlign(RIGHT, CENTER);
-  
-  // Score label
-  fill(180, 180, 180);
+  textAlign(CENTER, TOP);
+  fill(255, 255, 255, 150);
   textSize(14);
   textStyle(NORMAL);
-  text("PUNTAJE", width - 120, headerHeight/2 - 12);
+  text("PLAYER", sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING);
+  
+  // Player name value with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 220, 0.5)';
+  fill(255, 255, 220);
+  textSize(20);
+  textStyle(BOLD);
+  text(nombreJugador, sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING + 20);
+  drawingContext.shadowBlur = 0;
+  
+  // Score
+  fill(255, 255, 255, 150);
+  textSize(14);
+  textStyle(NORMAL);
+  text("SCORE", sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING + 45);
   
   // Score value with glow
   drawingContext.shadowBlur = 10;
@@ -1463,13 +1564,56 @@ function drawGameUI() {
   fill(255, 255, 220);
   textSize(24);
   textStyle(BOLD);
-  text(puntaje, width - 120, headerHeight/2 + 12);
+  text(puntaje, sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING + 65);
   drawingContext.shadowBlur = 0;
   
-  // Draw YouTube control in header
+  // Update Y position
+  currentY += 80 + SECTION_MARGIN;
+  
+  // SECTION 2: Neighborhood
+  fill(255, 255, 255, 30);
+  rect(sidebarX + SECTION_MARGIN, currentY, SIDEBAR_WIDTH - SECTION_MARGIN*2, 80, 5);
+  
+  // Neighborhood label
+  textAlign(CENTER, TOP);
+  fill(255, 255, 255, 150);
+  textSize(14);
+  textStyle(NORMAL);
+  text("NEIGHBORHOOD", sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING);
+  
+  // Current neighborhood with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 220, 0.5)';
+  fill(255, 255, 220);
+  textSize(20);
+  textStyle(BOLD);
+  text(currentNeighborhood, sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING + 20);
+  
+  // Café name with glow
+  fill(255, 255, 220, 200);
+  textSize(16);
+  textStyle(NORMAL);
+  text(cafeActual, sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING + 50);
+  drawingContext.shadowBlur = 0;
+  
+  // Update Y position
+  currentY += 80 + SECTION_MARGIN;
+  
+  // SECTION 3: Music control
+  fill(255, 255, 255, 30);
+  rect(sidebarX + SECTION_MARGIN, currentY, SIDEBAR_WIDTH - SECTION_MARGIN*2, 60, 5);
+  
+  // Music control label
+  textAlign(CENTER, TOP);
+  fill(255, 255, 255, 150);
+  textSize(14);
+  textStyle(NORMAL);
+  text("MUSIC", sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING);
+  
+  // Draw YouTube control button
   let buttonSize = 40;
-  let x = width - 45;
-  let y = headerHeight/2;
+  let x = sidebarX + SIDEBAR_WIDTH/2;
+  let y = currentY + SECTION_PADDING + 35;
   
   // Check if mouse is over button
   let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
@@ -1516,91 +1660,144 @@ function drawGameUI() {
   }
   
   drawingContext.shadowBlur = 0;
+  
+  // Update Y position
+  currentY += 60 + SECTION_MARGIN;
+  
+  // SECTION 4: Other players
+  const otherPlayersHeight = 200; // Fixed height for other players section
+  fill(255, 255, 255, 30);
+  rect(sidebarX + SECTION_MARGIN, currentY, SIDEBAR_WIDTH - SECTION_MARGIN*2, otherPlayersHeight, 5);
+  
+  // Other players label
+  textAlign(CENTER, TOP);
+  fill(255, 255, 255, 150);
+  textSize(14);
+  textStyle(NORMAL);
+  text("OTHER PLAYERS", sidebarX + SIDEBAR_WIDTH/2, currentY + SECTION_PADDING);
+  
+  // List other players
+  let playerY = currentY + SECTION_PADDING + 25;
+  textAlign(LEFT, TOP);
+  textSize(16);
+  
+  if (otherPlayers.size === 0) {
+    textAlign(CENTER, TOP);
+    fill(255, 255, 255, 100);
+    text("No other players", sidebarX + SIDEBAR_WIDTH/2, playerY);
+  } else {
+    otherPlayers.forEach((player, name) => {
+      // Draw player name and score
+      fill(player.color[0], player.color[1], player.color[2], 220);
+      textStyle(BOLD);
+      text(name, sidebarX + SECTION_MARGIN + 10, playerY);
+      
+      textStyle(NORMAL);
+      fill(255, 255, 255, 180);
+      text("Score: " + player.score, sidebarX + SECTION_MARGIN + 10, playerY + 20);
+      
+      playerY += 45; // Move to next player
+      
+      // Don't exceed the section height
+      if (playerY > currentY + otherPlayersHeight - 20) {
+        return;
+      }
+    });
+  }
 }
 
-// Update drawSpaceBackground to accept an opacity parameter
-function drawSpaceBackground(opacity = 255) {
-  // Update color transition based on score
-  let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
-  if (targetSpaceIndex !== currentSpaceIndex) {
-    spaceTransitionProgress += 0.02;
-    if (spaceTransitionProgress >= 1) {
-      currentSpaceIndex = targetSpaceIndex;
-      spaceTransitionProgress = 0;
-    }
-  }
-
-  // Interpolate between current and next space color
-  let currentColor = SPACE_COLORS[currentSpaceIndex];
-  let nextColor = SPACE_COLORS[(currentSpaceIndex + 1) % SPACE_COLORS.length];
-  let r = lerp(currentColor[0], nextColor[0], spaceTransitionProgress);
-  let g = lerp(currentColor[1], nextColor[1], spaceTransitionProgress);
-  let b = lerp(currentColor[2], nextColor[2], spaceTransitionProgress);
+// Update drawSpaceBackground to respect sidebar
+function drawSpaceBackground() {
+  // Calculate game area width (excluding sidebar)
+  const gameWidth = width - SIDEBAR_WIDTH;
   
-  // Create gradient background
-  let gradient = drawingContext.createRadialGradient(
-    width/2, height/2, 0,
-    width/2, height/2, max(width, height)
-  );
-  gradient.addColorStop(0, `rgba(${r+20}, ${g+20}, ${b+20}, ${opacity/255})`);
-  gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacity/255})`);
-  drawingContext.fillStyle = gradient;
-  rect(0, 0, width*2, height*2);
+  // Draw space background
+  background(SPACE_COLORS[currentSpaceIndex][0], SPACE_COLORS[currentSpaceIndex][1], SPACE_COLORS[currentSpaceIndex][2]);
   
-  // Draw stars with twinkle effect
+  // Draw stars
   for (let star of stars) {
-    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
-    let alpha = map(twinkle, -1, 1, 100, 255) * (opacity/255);
-    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
-    
-    // Star glow
-    drawingContext.shadowBlur = size * 2;
-    drawingContext.shadowColor = `rgba(255, 255, 255, ${alpha/255})`;
-    
-    fill(255, 255, 255, alpha);
+    fill(star.brightness);
     noStroke();
-    ellipse(star.x, star.y, size, size);
+    ellipse(star.x, star.y, star.size, star.size);
   }
-  drawingContext.shadowBlur = 0;
-
-  // Draw thin lines to separate neighborhoods
-  stroke(255, 255, 255, 40 * (opacity/255));
-  strokeWeight(1);
-  // Vertical divider
-  line(width/2, 0, width/2, height);
-  // Horizontal divider
-  line(0, height/2, width, height/2);
   
-  // Draw subtle neighborhood labels
+  // Draw particles
+  for (let particle of particles) {
+    // Update particle position
+    particle.x += cos(particle.direction) * particle.speed;
+    particle.y += sin(particle.direction) * particle.speed;
+    
+    // Wrap particles around the screen (only in game area)
+    if (particle.x < 0) particle.x = gameWidth;
+    if (particle.x > gameWidth) particle.x = 0;
+    if (particle.y < 0) particle.y = height;
+    if (particle.y > height) particle.y = 0;
+    
+    // Draw particle
+    fill(255, 255, 255, 50);
+    noStroke();
+    ellipse(particle.x, particle.y, particle.size, particle.size);
+  }
+  
+  // Draw neighborhood names
+  drawNeighborhoodName("PALERMO", gameWidth * 0.25, height * 0.25);
+  drawNeighborhoodName("RECOLETA", gameWidth * 0.75, height * 0.25);
+  drawNeighborhoodName("COLEGIALES", gameWidth * 0.25, height * 0.75);
+  drawNeighborhoodName("CHACARITA", gameWidth * 0.75, height * 0.75);
+  
+  // Draw grid lines
+  stroke(255, 255, 255, 20);
+  strokeWeight(1);
+  line(gameWidth/2, 0, gameWidth/2, height);
+  line(0, height/2, gameWidth, height/2);
+  noStroke();
+}
+
+// Add the drawNeighborhoodName function
+function drawNeighborhoodName(name, x, y) {
+  // Background pill
+  fill(0, 0, 0, 40);
+  noStroke();
+  rectMode(CENTER);
+  rect(x, y, textWidth(name) + 40, 40, 20);
+  
+  // Text
+  fill(255, 255, 255, 100);
   textAlign(CENTER, CENTER);
   textSize(24);
   textStyle(NORMAL);
-  fill(255, 255, 255, 100 * (opacity/255)); // More visible white
   drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = `rgba(255, 255, 255, ${0.3 * (opacity/255)})`;
-  noStroke();
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.3)';
+  text(name, x, y);
+  drawingContext.shadowBlur = 0;
+}
+
+// Add new function to check for collisions
+function verificarColisiones() {
+  let cabeza = snake[0];
   
-  // Position labels near the center of each quadrant
-  let offsetX = width * 0.2;
-  let offsetY = height * 0.2;
-  
-  // Draw each neighborhood name with subtle background
-  function drawNeighborhoodName(name, x, y) {
-    // Background pill
-    fill(0, 0, 0, 40 * (opacity/255));
-    rect(x, y, textWidth(name) + 40, 40, 20);
-    // Text
-    fill(255, 255, 255, 100 * (opacity/255));
-    text(name, x, y);
+  // Skip ALL collision checks during coffee drinking animation
+  if (drinkingCoffee) {
+    return;
+  }
+
+  // Check self collision only when not drinking
+  for (let i = 4; i < snake.length; i++) {  // Start from 4 to give more forgiveness
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
+      juegoTerminado = true;
+      gameOverReason = 'self';
+      return;
+    }
   }
   
-  // Draw each neighborhood name
-  drawNeighborhoodName("RECOLETA", width * 0.25, offsetY);
-  drawNeighborhoodName("PALERMO", width * 0.75, offsetY);
-  drawNeighborhoodName("COLEGIALES", width * 0.25, height - offsetY);
-  drawNeighborhoodName("CHACARITA", width * 0.75, height - offsetY);
-  
-  drawingContext.shadowBlur = 0;
+  // Check bache collision
+  for (let bache of baches) {
+    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.7) {
+      juegoTerminado = true;
+      gameOverReason = 'bache';
+      return;
+    }
+  }
 }
 
 // Add the missing function for multiplayer collisions
@@ -1747,46 +1944,16 @@ function cleanupInactivePlayers() {
 
 // Helper function to determine neighborhood based on screen position
 function getNeighborhoodFromPosition(x, y) {
-  // Simple quadrant check
-  if (x < width/2) {
-    if (y < height/2) {
-      return 'RECOLETA';
-    } else {
-      return 'COLEGIALES';
-    }
-  } else {
-    if (y < height/2) {
-      return 'PALERMO';
-    } else {
-      return 'CHACARITA';
-    }
-  }
-}
-
-// Add new function to check for collisions
-function verificarColisiones() {
-  let cabeza = snake[0];
+  const gameWidth = width - SIDEBAR_WIDTH;
   
-  // Skip ALL collision checks during coffee drinking animation
-  if (drinkingCoffee) {
-    return;
+  if (x < gameWidth/2 && y < height/2) {
+    return "PALERMO";
+  } else if (x >= gameWidth/2 && y < height/2) {
+    return "RECOLETA";
+  } else if (x < gameWidth/2 && y >= height/2) {
+    return "COLEGIALES";
+  } else if (x >= gameWidth/2 && y >= height/2) {
+    return "CHACARITA";
   }
-
-  // Check self collision only when not drinking
-  for (let i = 4; i < snake.length; i++) {  // Start from 4 to give more forgiveness
-    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.7) {
-      juegoTerminado = true;
-      gameOverReason = 'self';
-      return;
-    }
-  }
-  
-  // Check bache collision
-  for (let bache of baches) {
-    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.7) {
-      juegoTerminado = true;
-      gameOverReason = 'bache';
-      return;
-    }
-  }
+  return null;
 } 
