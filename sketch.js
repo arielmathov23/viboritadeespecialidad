@@ -373,12 +373,6 @@ function dibujarModalNombre() {
     fill(180);
     text("Presiona ENTER para comenzar", width/2, instructionsY);
   }
-  
-  // Add Flaticon attribution at the bottom of the modal
-  textSize(10);
-  textStyle(NORMAL);
-  fill(100, 100, 100);
-  text('Icons by Flaticon', width/2, height/2 + modalHeight/2 - 15);
 }
 
 // Draw the game over modal
@@ -534,11 +528,6 @@ function dibujarModalGameOver() {
   fill(150, 150, 150);
   text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 50);
   
-  // Add Flaticon attribution
-  textSize(10);
-  fill(100, 100, 100);
-  text('Icons by Flaticon', width/2, height/2 + modalHeight/2 - 15);
-  
   drawingContext.shadowBlur = 0;
 }
 
@@ -634,6 +623,9 @@ function iniciarJuego() {
   direccion = {x: 1, y: 0};
   baches = [];
   cafe = generarCafe();
+  
+  // Make sure we have a valid neighborhood before accessing it
+  currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
   cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
   
   // Start with just 1 bache
@@ -1188,9 +1180,14 @@ function dibujarCafe() {
   drawingContext.shadowBlur = 0;
 }
 
-// Generate a new bache at a random unoccupied position
+// Generate a new bache at a random unoccupied position - Simplified version
 function generarBache() {
-  let posicionesOcupadas = viborita.concat(baches);
+  let posicionesOcupadas = [...viborita];
+  if (cafe) {
+    posicionesOcupadas.push(cafe);
+  }
+  baches.forEach(bache => posicionesOcupadas.push(bache));
+  
   let attempts = 0;
   const maxAttempts = 50;
   
@@ -1200,9 +1197,8 @@ function generarBache() {
       y: Math.floor(random(GRILLA_ALTO))
     };
     
-    // Check if position is occupied by snake, other baches, or café
-    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y) &&
-        !(pos.x === cafe.x && pos.y === cafe.y)) {
+    // Check if position is occupied
+    if (!posicionesOcupadas.some(p => p.x === pos.x && p.y === pos.y)) {
       return pos;
     }
     attempts++;
@@ -1367,8 +1363,8 @@ function jugar() {
     return;
   }
   
-  // Check bache collision
-  if (baches.some(b => b.squares.some(s => s.x === cabeza.x && s.y === cabeza.y))) {
+  // Check bache collision - Fixed collision check
+  if (baches.some(bache => bache.x === cabeza.x && bache.y === cabeza.y)) {
     juegoTerminado = true;
     gameOverReason = 'bache';
     return;
@@ -1444,4 +1440,13 @@ function drawGameUI() {
   textStyle(BOLD);
   fill(255, 255, 220);
   text(puntaje, width - margin - 10, margin + 30);
+}
+
+// Helper function to determine neighborhood
+function getNeighborhoodFromPosition(x, y) {
+  if (x < GRILLA_ANCHO/2) {
+    return y < GRILLA_ALTO/2 ? 'RECOLETA' : 'COLEGIALES';
+  } else {
+    return y < GRILLA_ALTO/2 ? 'PALERMO' : 'CHACARITA';
+  }
 } 
