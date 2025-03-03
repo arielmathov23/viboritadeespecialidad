@@ -196,12 +196,17 @@ function setup() {
   ellipseMode(CENTER);
   imageMode(CENTER);
   
-  // Detect mobile device
+  // Detect mobile device with improved detection
   isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
   
-  // If on mobile, set up touch controls
+  // If on mobile, adjust game constants for better mobile experience
   if (isMobile) {
+    // Increase snake size for better visibility on mobile
+    adjustForMobile();
     setupMobileControls();
+    
+    // Create a hidden input element for mobile keyboard
+    createMobileInputField();
   }
   
   // Create stars
@@ -229,74 +234,64 @@ function setup() {
   frameRate(velocidadInicial);
 }
 
-// New function to set up mobile controls
-function setupMobileControls() {
-  hasTouchControls = true;
-  
-  // Set up touch event listeners for mobile control buttons
-  document.getElementById('btn-up').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.y >= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: 0, y: -MOVE_SPEED};
-    }
-  });
-  
-  document.getElementById('btn-down').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.y <= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: 0, y: MOVE_SPEED};
-    }
-  });
-  
-  document.getElementById('btn-left').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.x >= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: -MOVE_SPEED, y: 0};
-    }
-  });
-  
-  document.getElementById('btn-right').addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (direction.x <= 0 && !ingresandoNombre && !juegoTerminado) {
-      direction = {x: MOVE_SPEED, y: 0};
-    }
-  });
+// New function to adjust game parameters for mobile
+function adjustForMobile() {
+  // Increase sizes for better visibility on mobile
+  SNAKE_SIZE_MOBILE = 30; // Larger snake for mobile
 }
 
-// Window resize handler
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  // Update star positions for new window size
-  for (let star of stars) {
-    star.x = random(width);
-    star.y = random(height);
+// Create a hidden input field for mobile
+function createMobileInputField() {
+  // Remove any existing input field
+  let existingInput = document.getElementById('mobileNameInput');
+  if (existingInput) {
+    existingInput.remove();
+  }
+  
+  // Create a new input field
+  let inputField = document.createElement('input');
+  inputField.id = 'mobileNameInput';
+  inputField.type = 'text';
+  inputField.maxLength = 15;
+  inputField.placeholder = 'Tu nombre';
+  inputField.style.position = 'absolute';
+  inputField.style.left = '-1000px'; // Hide it off-screen initially
+  inputField.style.top = '0';
+  inputField.style.zIndex = '1000';
+  inputField.style.fontSize = '16px'; // Prevent zoom on iOS
+  inputField.style.padding = '12px';
+  inputField.style.borderRadius = '8px';
+  inputField.style.border = '2px solid #4286f4';
+  inputField.style.backgroundColor = '#2a3a5a';
+  inputField.style.color = 'white';
+  
+  // Add event listeners
+  inputField.addEventListener('input', function() {
+    textoNombre = this.value.substring(0, 15);
+  });
+  
+  inputField.addEventListener('blur', function() {
+    // Hide the input when not in focus
+    this.style.left = '-1000px';
+  });
+  
+  document.body.appendChild(inputField);
+}
+
+// Show the mobile input field
+function showMobileInput(x, y) {
+  let inputField = document.getElementById('mobileNameInput');
+  if (inputField) {
+    // Position the input field at the tap location
+    inputField.style.left = (x - 150) + 'px';
+    inputField.style.top = (y - 25) + 'px';
+    inputField.style.width = '300px';
+    inputField.value = textoNombre;
+    inputField.focus();
   }
 }
 
-// P5.js Draw Function
-function draw() {
-  // Draw space background
-  drawSpaceBackground();
-
-  if (ingresandoNombre) {
-    drawNombreIngreso();
-  } else if (juegoTerminado) {
-    drawGameOver();
-  } else {
-    jugar();
-  }
-}
-
-function dibujarTablero() {
-  // Draw game elements
-  dibujarViborita();
-  dibujarCafes();
-  dibujarBaches();
-  dibujarPuntaje();
-  dibujarNombre();
-}
-
-// Update drawNombreIngreso function to simplify the design and fix spacing
+// Update drawNombreIngreso function to optimize for mobile
 function drawNombreIngreso() {
   // First draw a completely opaque background to hide everything
   push();
@@ -314,10 +309,10 @@ function drawNombreIngreso() {
     ellipse(star.x, star.y, size, size);
   }
   
-  // Calculate modal dimensions that work on both desktop and mobile
-  let modalWidth = min(550, width * 0.9);
-  let modalHeight = min(480, height * 0.75);
-  let inputWidth = modalWidth * 0.7;
+  // Calculate modal dimensions - make it larger on mobile
+  let modalWidth = isMobile ? min(width * 0.95, 600) : min(550, width * 0.9);
+  let modalHeight = isMobile ? min(height * 0.8, 700) : min(480, height * 0.75);
+  let inputWidth = modalWidth * 0.8; // Wider input on mobile
   
   // Draw modal background with rounded corners and stronger border
   rectMode(CENTER);
@@ -332,75 +327,64 @@ function drawNombreIngreso() {
   strokeWeight(1);
   rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
   
-  // Simple, evenly spaced layout
-  let titleY = height/2 - modalHeight * 0.3;
-  let subtitleY = titleY + 45;
-  let labelY = height/2 - 30;
-  let inputY = height/2 + 20;
-  let buttonY = height/2 + modalHeight * 0.25;
+  // Simple, evenly spaced layout - adjusted for mobile
+  let titleY = height/2 - modalHeight * 0.35;
+  let subtitleY = titleY + (isMobile ? 60 : 45);
+  let labelY = height/2 - (isMobile ? 50 : 30);
+  let inputY = height/2 + (isMobile ? 30 : 20);
+  let buttonY = height/2 + modalHeight * 0.3;
   
-  // Draw title with clean, elegant styling - split into two lines to fit within modal
+  // Draw title with clean, elegant styling - larger on mobile
   noStroke();
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
   fill(255);
-  textSize(28);
+  textSize(isMobile ? 36 : 28);
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  text('¡Bienvenido a', width/2, titleY - 20);
-  text('Viborita de Especialidad!', width/2, titleY + 20);
+  text('¡Bienvenido a', width/2, titleY - (isMobile ? 30 : 20));
+  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 30 : 20));
   
-  // Draw subtitle
+  // Draw subtitle - larger on mobile
   drawingContext.shadowBlur = 5;
-  textSize(16);
+  textSize(isMobile ? 20 : 16);
   textStyle(NORMAL);
   fill(200, 200, 200);
   text('El juego de cafetería en Buenos Aires', width/2, subtitleY);
   
-  // Draw input label
+  // Draw input label - larger on mobile
   fill(255);
-  textSize(18);
+  textSize(isMobile ? 24 : 18);
   textStyle(NORMAL);
   text('Ingresá tu nombre:', width/2, labelY);
   
-  // Draw input box with clean styling
+  // Draw input box with clean styling - larger on mobile
   drawingContext.shadowBlur = 10;
   drawingContext.shadowColor = 'rgba(100, 100, 255, 0.3)';
   fill(35, 35, 55);
-  stroke(isMobile ? '#4286f4' : '#6464c8');
+  stroke('#4286f4');
   strokeWeight(2);
-  rect(width/2, inputY, inputWidth, 50, 10);
+  let inputHeight = isMobile ? 60 : 50;
+  rect(width/2, inputY, inputWidth, inputHeight, 10);
   
   // Draw text input content
   drawingContext.shadowBlur = 0;
   noStroke();
   fill(255);
   textAlign(CENTER, CENTER);
-  textSize(20);
+  textSize(isMobile ? 26 : 20);
   text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
   
   // Add touch instructions for mobile
   if (isMobile) {
-    textSize(14);
+    textSize(18);
     fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 40);
-    
-    // Make input box clickable for mobile
-    if (mouseIsPressed && 
-        mouseX > width/2 - inputWidth/2 && 
-        mouseX < width/2 + inputWidth/2 && 
-        mouseY > inputY - 25 && 
-        mouseY < inputY + 25) {
-      let userInput = prompt('Ingresa tu nombre:', textoNombre);
-      if (userInput !== null) {
-        textoNombre = userInput.substring(0, 15); // Limit length
-      }
-    }
+    text('Toca aquí para escribir', width/2, inputY + 50);
   }
   
-  // Draw start button with clean styling
-  let buttonWidth = inputWidth * 0.6;
-  let buttonHeight = 55;
+  // Draw start button with clean styling - larger on mobile
+  let buttonWidth = inputWidth * 0.7;
+  let buttonHeight = isMobile ? 70 : 55;
   let buttonHover = mouseX > width/2 - buttonWidth/2 && 
                    mouseX < width/2 + buttonWidth/2 && 
                    mouseY > buttonY - buttonHeight/2 && 
@@ -413,171 +397,64 @@ function drawNombreIngreso() {
   strokeWeight(2);
   rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
   
-  // Button text
+  // Button text - larger on mobile
   drawingContext.shadowBlur = 0;
   fill(255);
   noStroke();
-  textSize(20);
+  textSize(isMobile ? 28 : 20);
   textStyle(BOLD);
   text('¡JUGAR!', width/2, buttonY);
   
   // Add instruction for mobile view if name is empty
   if (isMobile && textoNombre.length === 0) {
     fill(255, 200, 200);
-    textSize(14);
+    textSize(18);
     textStyle(NORMAL);
-    text('Por favor, ingresa un nombre para continuar', width/2, buttonY + 40);
+    text('Por favor, ingresa un nombre para continuar', width/2, buttonY + 50);
   }
   
   // Reset drawing settings
   pop();
 }
 
-// Update the drawGameOver function to fix the spinner and improve spacing
-function drawGameOver() {
-  // First draw a completely opaque background to hide everything
-  push();
-  // Use a solid dark background
-  background(15, 15, 25);
-  
-  // Draw stars with very low opacity for subtle background
-  for (let star of stars) {
-    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
-    let alpha = map(twinkle, -1, 1, 10, 40);
-    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
-    
-    fill(255, 255, 255, alpha);
-    noStroke();
-    ellipse(star.x, star.y, size, size);
-  }
-  
-  // Calculate modal dimensions
-  let modalWidth = min(500, width * 0.9);
-  let modalHeight = min(400, height * 0.7);
-  
-  // Draw modal background with rounded corners and stronger border
-  rectMode(CENTER);
-  fill(25, 25, 40, 240);
-  strokeWeight(3);
-  stroke(200, 70, 70, 200);
-  rect(width/2, height/2, modalWidth, modalHeight, 20);
-  
-  // Add a subtle inner glow to the modal
-  noFill();
-  stroke(200, 70, 70, 50);
-  strokeWeight(1);
-  rect(width/2, height/2, modalWidth - 10, modalHeight - 10, 15);
-  
-  // Simple, evenly spaced layout
-  let titleY = height/2 - modalHeight * 0.35;
-  let reasonY = titleY + 70;
-  let scoreY = reasonY + 70;
-  let buttonY = height/2 + modalHeight * 0.3;
-  
-  // Game Over text with glow effect
-  noStroke();
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
-  textAlign(CENTER, CENTER);
-  textSize(38);
-  textStyle(BOLD);
-  fill(255);
-  text('¡GAME OVER!', width/2, titleY);
-  
-  // Game over reason with icon
-  drawingContext.shadowBlur = 0;
-  textSize(22);
-  fill(220, 220, 220);
-  textStyle(NORMAL);
-  
-  if (colisionJugador) {
-    text(`¡Chocaste con ${colisionJugador}!`, width/2, reasonY);
-  } else {
-    switch(gameOverReason) {
-      case 'border':
-        text('¡Te saliste del mapa!', width/2, reasonY);
-        break;
-      case 'self':
-        text('¡Te chocaste con vos mismo!', width/2, reasonY);
-        break;
-      case 'bache':
-        text('¡Caíste en un bache!', width/2, reasonY);
-        break;
-    }
-  }
-  
-  // Score display with enhanced styling
-  textSize(18);
-  fill(180, 180, 180);
-  text('PUNTAJE FINAL', width/2, scoreY - 25);
-  
-  textSize(42);
-  textStyle(BOLD);
-  fill(255, 255, 220);
-  text(puntaje, width/2, scoreY + 15);
-  
-  // Restart button with hover effect
-  let buttonWidth = modalWidth * 0.5;
-  let buttonHeight = 55;
-  
-  // Check if mouse is over button
-  let mouseOverButton = mouseX > width/2 - buttonWidth/2 &&
-                       mouseX < width/2 + buttonWidth/2 &&
-                       mouseY > buttonY - buttonHeight/2 &&
-                       mouseY < buttonY + buttonHeight/2;
-  
-  // Button shadow and glow
-  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
-  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
-  
-  // Button with clean styling
-  fill(mouseOverButton ? '#4286f4' : '#2a5298');
-  stroke(100, 100, 200);
-  strokeWeight(2);
-  rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
-  
-  // Button text
-  drawingContext.shadowBlur = 0;
-  fill(255);
-  noStroke();
-  textSize(20);
-  textStyle(BOLD);
-  text('JUGAR DE NUEVO', width/2, buttonY);
-  
-  // Add different instructions for mobile vs desktop
-  textSize(16);
-  textStyle(NORMAL);
-  fill(150, 150, 150);
-  if (isMobile) {
-    text('Toca el botón para jugar de nuevo', width/2, buttonY + 45);
-  } else {
-    text('Presioná ENTER para jugar de nuevo', width/2, buttonY + 45);
-  }
-  
-  // Reset drawing settings
-  pop();
-}
-
-// Update mousePressed function to match the new game over button position
+// Update mousePressed function to handle the mobile input field
 function mousePressed() {
-  if (ingresandoNombre && textoNombre.length > 0) {
-    let modalWidth = min(550, width * 0.9);
-    let modalHeight = min(480, height * 0.75);
-    let inputWidth = modalWidth * 0.7;
-    let buttonWidth = inputWidth * 0.6;
-    let buttonHeight = 55;
+  if (ingresandoNombre) {
+    let modalWidth = isMobile ? min(width * 0.95, 600) : min(550, width * 0.9);
+    let modalHeight = isMobile ? min(height * 0.8, 700) : min(480, height * 0.75);
+    let inputWidth = modalWidth * 0.8;
+    let inputHeight = isMobile ? 60 : 50;
+    let inputY = height/2 + (isMobile ? 30 : 20);
+    let buttonWidth = inputWidth * 0.7;
+    let buttonHeight = isMobile ? 70 : 55;
+    let buttonY = height/2 + modalHeight * 0.3;
     
-    // Use the same button position as in the drawing function
-    let buttonY = height/2 + modalHeight * 0.25;
+    // Check if input field was clicked
+    if (isMobile && 
+        mouseX > width/2 - inputWidth/2 && 
+        mouseX < width/2 + inputWidth/2 && 
+        mouseY > inputY - inputHeight/2 && 
+        mouseY < inputY + inputHeight/2) {
+      // Show the mobile input field
+      showMobileInput(width/2, inputY);
+      return;
+    }
     
-    // Check if button was clicked
-    if (mouseX > width/2 - buttonWidth/2 && 
+    // Check if button was clicked and name is not empty
+    if (textoNombre.length > 0 &&
+        mouseX > width/2 - buttonWidth/2 && 
         mouseX < width/2 + buttonWidth/2 && 
         mouseY > buttonY - buttonHeight/2 && 
         mouseY < buttonY + buttonHeight/2) {
       nombreJugador = textoNombre;
       ingresandoNombre = false;
       iniciarJuego();
+      
+      // Hide the mobile input field
+      let inputField = document.getElementById('mobileNameInput');
+      if (inputField) {
+        inputField.style.left = '-1000px';
+      }
     }
   } else if (juegoTerminado) {
     let modalWidth = min(500, width * 0.9);
@@ -1357,29 +1234,35 @@ function onPlayerStateChange(event) {
 
 // Main game loop function
 function jugar() {
-  // Draw space background
-  drawSpaceBackground();
+  push();
   
-  // Clean up inactive players
-  cleanupInactivePlayers();
-  
-  // Draw header UI
+  // Draw the header UI
   drawGameUI();
   
   // Translate everything below the header
-  push();
-  translate(0, 60); // Translate by header height
+  translate(0, 60);
   
-  // Move snake and check collisions
-  if (direction.x !== 0 || direction.y !== 0) {
+  // Update game state
+  if (frameCount % 2 === 0) { // Slow down updates for smoother gameplay
     moverViborita();
-    verificarColisiones();
+    
+    // Check for self collision
+    if (!drinkingCoffee && checkSelfCollision()) {
+      juegoTerminado = true;
+      gameOverReason = 'self';
+      return;
+    }
+    
+    // Check for bache collision
+    if (!drinkingCoffee && checkBacheCollision()) {
+      juegoTerminado = true;
+      gameOverReason = 'bache';
+      return;
+    }
   }
   
   // Draw game elements
-  dibujarBaches();
-  dibujarCafe();
-  dibujarViborita();
+  dibujarTablero();
   
   pop();
 }
@@ -1789,4 +1672,131 @@ function verificarColisiones() {
       return;
     }
   }
+}
+
+// Add the missing dibujarTablero function
+function dibujarTablero() {
+  // Draw game elements
+  dibujarViborita();
+  dibujarCafes();
+  dibujarBaches();
+  dibujarPuntaje();
+  dibujarNombre();
+}
+
+// Add the missing dibujarCafes function
+function dibujarCafes() {
+  // Draw the cafe (coffee)
+  dibujarCafe();
+}
+
+// Add the missing dibujarPuntaje function
+function dibujarPuntaje() {
+  // This function is not needed as the score is now displayed in the header UI
+}
+
+// Add the missing dibujarNombre function
+function dibujarNombre() {
+  // This function is not needed as the player name is now displayed in the header UI
+}
+
+// P5.js Draw Function - Main game loop
+function draw() {
+  // Draw space background
+  drawSpaceBackground();
+
+  if (ingresandoNombre) {
+    drawNombreIngreso();
+  } else if (juegoTerminado) {
+    drawGameOver();
+  } else {
+    jugar();
+  }
+}
+
+// Window resize handler
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  // Update star positions for new window size
+  for (let star of stars) {
+    star.x = random(width);
+    star.y = random(height);
+  }
+}
+
+// New function to set up mobile controls
+function setupMobileControls() {
+  hasTouchControls = true;
+  
+  // Set up touch event listeners for mobile control buttons
+  let btnUp = document.getElementById('btn-up');
+  let btnDown = document.getElementById('btn-down');
+  let btnLeft = document.getElementById('btn-left');
+  let btnRight = document.getElementById('btn-right');
+  
+  if (btnUp) {
+    btnUp.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (direction.y >= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: 0, y: -MOVE_SPEED};
+      }
+    });
+  }
+  
+  if (btnDown) {
+    btnDown.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (direction.y <= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: 0, y: MOVE_SPEED};
+      }
+    });
+  }
+  
+  if (btnLeft) {
+    btnLeft.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (direction.x >= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: -MOVE_SPEED, y: 0};
+      }
+    });
+  }
+  
+  if (btnRight) {
+    btnRight.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (direction.x <= 0 && !ingresandoNombre && !juegoTerminado) {
+        direction = {x: MOVE_SPEED, y: 0};
+      }
+    });
+  }
+}
+
+// Add the missing checkSelfCollision function
+function checkSelfCollision() {
+  // Get the snake's head
+  let cabeza = snake[0];
+  
+  // Check collision with own body (starting from segment 2 to avoid false positives)
+  for (let i = 2; i < snake.length; i++) {
+    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Add the missing checkBacheCollision function
+function checkBacheCollision() {
+  // Get the snake's head
+  let cabeza = snake[0];
+  
+  // Check collision with baches (potholes)
+  for (let bache of baches) {
+    if (dist(cabeza.x, cabeza.y, bache.x, bache.y) < SNAKE_SIZE * 0.8) {
+      return true;
+    }
+  }
+  
+  return false;
 } 
