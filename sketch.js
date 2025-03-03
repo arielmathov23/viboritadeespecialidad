@@ -679,6 +679,8 @@ function iniciarJuego() {
   snake = [{x: startX, y: startY}];
   direction = {x: MOVE_SPEED, y: 0};
   baches = [];
+  
+  // Generate initial cafe
   cafe = generarCafe();
   
   // Make sure we have a valid neighborhood before accessing it
@@ -706,19 +708,21 @@ function iniciarJuego() {
 // Restart the game after game over
 function reiniciarJuego() {
   // Generate random starting position
-  const startX = Math.floor(random(GRILLA_ANCHO));
-  const startY = Math.floor(random(GRILLA_ALTO));
+  const startX = random(SNAKE_SIZE, width - SNAKE_SIZE);
+  const startY = random(SNAKE_SIZE, height - SNAKE_SIZE);
   
   // Reset game state
   snake = [{x: startX, y: startY}];
   direction = {x: 0, y: 0};
   cafe = generarCafe();
   baches = [];
-  // Start with just 1 bache again
-  let initialBache = generarBache();
-  if (initialBache) {
-    baches.push(initialBache);
+  
+  // Start with just a few baches
+  for (let i = 0; i < 3; i++) {
+    let newBache = generarBache();
+    if (newBache) baches.push(newBache);
   }
+  
   puntaje = 0;
   juegoTerminado = false;
   colisionJugador = null;
@@ -1298,17 +1302,27 @@ function dibujarMusicControl() {
   drawingContext.shadowBlur = 0;
 }
 
-// Main game loop and UI
+// Main game loop function
 function jugar() {
-  moverViborita();
-  dibujarViborita();
-  dibujarCafes();
-  dibujarBaches();
-  dibujarPuntaje();
-  dibujarNombre();
+  // Draw space background is already called in draw()
   
-  // Check collisions
-  verificarColisiones();
+  // Move snake and check collisions
+  if (direction.x !== 0 || direction.y !== 0) {
+    moverViborita();
+    verificarColisiones();
+  }
+  
+  // Draw game elements
+  dibujarBaches();
+  dibujarCafe();
+  dibujarViborita();
+  
+  // Draw UI elements
+  drawGameUI();
+  
+  // Draw neighborhood labels
+  let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
+  drawNeighborhoodLabel(currentNeighborhood, width/2, 30);
 }
 
 // Draw the game UI with player name and score
