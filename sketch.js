@@ -639,11 +639,14 @@ function iniciarJuego() {
   velocidadActual = velocidadInicial;
   frameRate(velocidadActual);
   
+  // Set default color for single player mode
+  myColor = COLOR_VIBORITA;
+  
   // Try to initialize WebSocket connection
   try {
     const connectWebSocket = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${protocol}//${window.location.hostname}:${window.location.port}`);
+      // Connect to dedicated WebSocket server
+      ws = new WebSocket('wss://viborita-ws.glitch.me');
       
       ws.onopen = () => {
         console.log('Connected to game server');
@@ -695,11 +698,17 @@ function iniciarJuego() {
       };
       
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.log('WebSocket error:', error);
+        ws = null;
+        otherPlayers.clear();
       };
       
       ws.onclose = (event) => {
-        console.log('WebSocket connection closed:', event.code, event.reason);
+        console.log('WebSocket connection closed');
+        ws = null;
+        otherPlayers.clear();
+        
+        // Try to reconnect after a delay
         setTimeout(connectWebSocket, 3000);
       };
     };
@@ -707,7 +716,9 @@ function iniciarJuego() {
     // Start WebSocket connection
     connectWebSocket();
   } catch (error) {
-    console.error('Failed to initialize WebSocket:', error);
+    console.log('Failed to initialize WebSocket - running in single player mode');
+    ws = null;
+    otherPlayers.clear();
   }
   
   loop();
