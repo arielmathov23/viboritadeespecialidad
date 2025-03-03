@@ -97,7 +97,7 @@ let nombreJugador = "";
 let ingresandoNombre = true;
 let textoNombre = "";
 let juegoTerminado = false;
-const velocidadInicial = 8; // Increased from 4
+const velocidadInicial = 12; // Increased from 8
 let velocidadActual = velocidadInicial;
 let cafeIcon; // Variable to store the coffee icon image
 let bacheIcon; // Variable to store the pothole icon image
@@ -904,11 +904,12 @@ function moverViborita() {
     y: snake[0].y + direction.y
   };
   
-  // Wrap around screen edges
-  if (cabeza.x < 0) cabeza.x = width;
-  if (cabeza.x > width) cabeza.x = 0;
-  if (cabeza.y < 0) cabeza.y = height;
-  if (cabeza.y > height) cabeza.y = 0;
+  // Check border collision
+  if (cabeza.x < 0 || cabeza.x > width || cabeza.y < 0 || cabeza.y > height) {
+    juegoTerminado = true;
+    gameOverReason = 'border';
+    return;
+  }
   
   // Check collision with other players
   let collidedPlayer = checkPlayerCollisions(cabeza);
@@ -925,8 +926,8 @@ function moverViborita() {
     puntaje++;
     cafe = generarCafe();
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
-    velocidadActual = velocidadInicial * Math.pow(1.1, puntaje);
-    velocidadActual = min(velocidadActual, 15);
+    velocidadActual = velocidadInicial * Math.pow(1.05, puntaje); // Reduced growth rate
+    velocidadActual = min(velocidadActual, 20); // Increased max speed
     frameRate(velocidadActual);
     
     // Add new bache every 3 points
@@ -954,14 +955,14 @@ function dibujarViborita() {
         let segmento = player.snake[i];
         let alpha = map(i, 0, player.snake.length - 1, 255, 150);
         fill(player.color[0], player.color[1], player.color[2], alpha);
-        rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 3);
+        rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
       }
       
       // Draw head with player name
       if (player.snake.length > 0) {
         let cabeza = player.snake[0];
         fill(player.color[0], player.color[1], player.color[2]);
-        rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 4);
+        rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
         
         // Draw player name above head
         fill(255);
@@ -975,7 +976,7 @@ function dibujarViborita() {
   // Draw local player's snake
   noStroke();
   
-  // Draw body segments
+  // Draw body segments with smoother appearance
   for (let i = snake.length - 1; i > 0; i--) {
     let segmento = snake[i];
     let alpha = map(i, 0, snake.length - 1, 255, 150);
@@ -983,15 +984,15 @@ function dibujarViborita() {
          myColor ? myColor[1] : COLOR_VIBORITA[1], 
          myColor ? myColor[2] : COLOR_VIBORITA[2], 
          alpha);
-    rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 3);
+    rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
   }
   
-  // Draw head
+  // Draw head with rounded corners
   let cabeza = snake[0];
   fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
        myColor ? myColor[1] : COLOR_VIBORITA[1], 
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
-  rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 4);
+  rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
   
   // Draw player name above head
   fill(255);
@@ -999,14 +1000,15 @@ function dibujarViborita() {
   textAlign(CENTER, BOTTOM);
   text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
   
-  // Draw eyes
+  // Draw eyes with improved appearance
   fill(255);
-  let eyeSize = 4;
+  let eyeSize = 5;
   let eyeOffsetX = direction.x * 3;
   let eyeOffsetY = direction.y * 3;
   
-  ellipse(cabeza.x - 3 + eyeOffsetX, cabeza.y - 3 + eyeOffsetY, eyeSize, eyeSize);
-  ellipse(cabeza.x + 3 + eyeOffsetX, cabeza.y - 3 + eyeOffsetY, eyeSize, eyeSize);
+  noStroke();
+  ellipse(cabeza.x - 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
+  ellipse(cabeza.x + 4 + eyeOffsetX, cabeza.y - 4 + eyeOffsetY, eyeSize, eyeSize);
 }
 
 // Generate a new café at a random unoccupied position
@@ -1321,10 +1323,17 @@ function jugar() {
   
   // Draw UI elements
   drawGameUI();
+  dibujarMusicControl(); // Add music control
   
-  // Draw neighborhood labels
+  // Draw current neighborhood label with highlight
   let currentNeighborhood = getNeighborhoodFromPosition(snake[0].x, snake[0].y);
-  drawNeighborhoodLabel(currentNeighborhood, width/2, 30);
+  
+  // Draw highlighted current neighborhood label
+  let labelY = 30;
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.8)';
+  drawNeighborhoodLabel(currentNeighborhood, width/2, labelY);
+  drawingContext.shadowBlur = 0;
 }
 
 // Draw the game UI with player name and score
