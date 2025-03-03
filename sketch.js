@@ -930,7 +930,7 @@ function moverViborita() {
   
   // Check cafe collection with a more forgiving distance
   if (cafe && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE) {
-    // Start drinking animation
+    // Start drinking animation without interrupting movement
     drinkingCoffee = true;
     drinkingAnimation = 0;
     drinkingStartTime = millis();
@@ -1508,12 +1508,14 @@ function getNeighborhoodFromPosition(x, y) {
 function verificarColisiones() {
   let cabeza = snake[0];
   
-  // Check self collision
-  for (let i = 1; i < snake.length; i++) {
-    if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
-      juegoTerminado = true;
-      gameOverReason = 'self';
-      return;
+  // Check self collision (ignore during drinking animation)
+  if (!drinkingCoffee) {
+    for (let i = 1; i < snake.length; i++) {
+      if (dist(cabeza.x, cabeza.y, snake[i].x, snake[i].y) < SNAKE_SIZE * 0.8) {
+        juegoTerminado = true;
+        gameOverReason = 'self';
+        return;
+      }
     }
   }
   
