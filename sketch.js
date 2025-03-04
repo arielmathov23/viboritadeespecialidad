@@ -2199,15 +2199,26 @@ function moverViborita() {
     currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
     
-    // Improved speed increase logic:
-    // 1. Use a higher multiplier (1.08 instead of 1.05) for faster speed increase
-    // 2. Higher cap (25 instead of 20) to allow for faster maximum speed
-    // 3. Add bonus speed for milestone achievements
-    velocidadActual = min(velocidadInicial * Math.pow(1.08, puntaje), 25);
+    // Much more aggressive speed increase logic:
+    // 1. Use a significantly higher multiplier (1.12 instead of 1.08) for much faster speed increase
+    // 2. Higher cap (30 instead of 25) to allow for even faster maximum speed
+    // 3. Add larger bonus speed for milestone achievements
+    // 4. Add direct speed increase for each coffee
     
-    // Add bonus speed at milestone points
+    // Base speed calculation with higher multiplier
+    velocidadActual = min(velocidadInicial * Math.pow(1.12, puntaje), 30);
+    
+    // Add direct speed increase for each coffee
+    velocidadActual += 0.5; // Add 0.5 to speed for EVERY coffee
+    
+    // Add larger bonus speed at milestone points
     if (puntaje % 5 === 0) {
-      velocidadActual += 1; // Extra speed boost every 5 coffees
+      velocidadActual += 2; // Bigger speed boost every 5 coffees (2 instead of 1)
+    }
+    
+    // Add even larger boost at major milestones
+    if (puntaje % 10 === 0) {
+      velocidadActual += 3; // Major speed boost every 10 coffees
     }
     
     // Apply the new speed
