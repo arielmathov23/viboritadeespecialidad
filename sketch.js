@@ -381,7 +381,19 @@ function showMobileInput(x, y) {
         inputField.readOnly = false;
         inputField.focus();
       }
-    }, 300); // Longer delay to ensure UI is ready and any other inputs are dismissed
+    }, 100); // Shorter delay since we're already handling cleanup
+    
+    // Add a one-time blur handler to properly hide the input when done
+    inputField.onblur = function onBlurHandler() {
+      setTimeout(() => {
+        if (document.activeElement !== inputField) {
+          inputField.style.left = '-1000px';
+          inputField.style.display = 'none';
+          // Remove the one-time handler
+          inputField.onblur = null;
+        }
+      }, 300);
+    };
   }
 }
 
@@ -463,24 +475,29 @@ function drawNombreIngreso() {
   let inputHeight = isMobile ? 45 : 50;
   rect(width/2, inputY, inputWidth, inputHeight, 10);
   
-  // Draw text input content
+  // Draw text input content - only if HTML input is not active on mobile
   drawingContext.shadowBlur = 0;
   noStroke();
   fill(255);
   textAlign(CENTER, CENTER);
   textSize(isMobile ? 20 : 20); // Reduced size for mobile
-  text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
+  
+  let inputField = document.getElementById('mobileNameInput');
+  let isHTMLInputActive = isMobile && inputField && inputField.style.left !== '-1000px';
+  
+  if (!isHTMLInputActive) {
+    text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
+  }
   
   // Add touch instructions for mobile
   if (isMobile) {
     textSize(14); // Smaller text
     fill(180, 180, 180);
-    text('', width/2, inputY + 45); // Increased space from 35 to 45
+    text('Toca aquí para escribir', width/2, inputY + 45); // Increased space from 35 to 45
     
     // Ensure the HTML input field is properly positioned when the modal is shown
     // This helps prevent doubled input issues by ensuring the HTML input is in sync with the canvas
     if (frameCount % 30 === 0) { // Only check periodically to avoid performance issues
-      let inputField = document.getElementById('mobileNameInput');
       if (inputField && inputField.style.left !== '-1000px' && document.activeElement !== inputField) {
         // If the input field is visible but not focused, hide it to prevent doubled input
         inputField.style.left = '-1000px';
@@ -1591,78 +1608,47 @@ function drawGameUI() {
   // Check if mouse is over button
   let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
   
-  // Enhanced button shadow
-  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
-  drawingContext.shadowColor = 'rgba(100, 150, 255, 0.4)'; // Blue shadow for sound
+  // Draw button circle
+  noFill();
+  stroke(100, 150, 255, mouseOverButton ? 180 : 120);
+  strokeWeight(2);
+  ellipse(x, y, buttonSize, buttonSize);
   
-  // Improved gradient for sound button
-  let buttonGradient = drawingContext.createRadialGradient(
-    x, y, 0,
-    x, y, buttonSize/2
-  );
-  buttonGradient.addColorStop(0, mouseOverButton ? 'rgba(80, 120, 220, 1)' : 'rgba(60, 100, 200, 1)'); // Blue for sound
-  buttonGradient.addColorStop(1, mouseOverButton ? 'rgba(40, 80, 180, 1)' : 'rgba(30, 60, 160, 1)');
-  drawingContext.fillStyle = buttonGradient;
-  
-  // Draw button with slight scale effect on hover
-  let currentSize = mouseOverButton ? buttonSize * 1.05 : buttonSize;
-  ellipse(x, y, currentSize, currentSize);
-  
-  // Draw mute/unmute icon
-  fill(255);
+  // Draw sound icon
   noStroke();
+  fill(255, mouseOverButton ? 255 : 200);
   
+  // Draw speaker icon
+  let iconSize = buttonSize * 0.5;
+  let speakerX = x - iconSize/4;
+  let speakerY = y;
+  
+  // Speaker base
+  rect(speakerX - iconSize/4, speakerY, iconSize/3, iconSize/2);
+  
+  // Speaker cone
+  beginShape();
+  vertex(speakerX - iconSize/4, speakerY);
+  vertex(speakerX + iconSize/4, speakerY - iconSize/3);
+  vertex(speakerX + iconSize/4, speakerY + iconSize/3);
+  vertex(speakerX - iconSize/4, speakerY);
+  endShape();
+  
+  // Sound waves (if playing)
   if (isPlaying) {
-    // Sound on icon (speaker with waves)
-    let speakerSize = buttonSize * 0.4;
-    let waveOffset = buttonSize * 0.2;
-    
-    // Speaker base
-    rectMode(CORNER);
-    rect(x - speakerSize/2, y - speakerSize/2, speakerSize * 0.5, speakerSize, 1);
-    
-    // Speaker cone
-    beginShape();
-    vertex(x - speakerSize/2 + speakerSize * 0.5, y - speakerSize/2);
-    vertex(x + speakerSize/2, y - speakerSize/2 - speakerSize * 0.3);
-    vertex(x + speakerSize/2, y + speakerSize/2 + speakerSize * 0.3);
-    vertex(x - speakerSize/2 + speakerSize * 0.5, y + speakerSize/2);
-    endShape(CLOSE);
-    
-    // Sound waves
     noFill();
-    stroke(255);
-    strokeWeight(1.5);
-    let waveSize = speakerSize * 0.6;
-    arc(x + waveOffset, y, waveSize, waveSize, -QUARTER_PI, QUARTER_PI);
-    arc(x + waveOffset, y, waveSize * 1.5, waveSize * 1.5, -QUARTER_PI, QUARTER_PI);
-    noStroke();
-    rectMode(CENTER);
-  } else {
-    // Sound off icon (speaker with X)
-    let speakerSize = buttonSize * 0.4;
-    
-    // Speaker base
-    rectMode(CORNER);
-    rect(x - speakerSize/2, y - speakerSize/2, speakerSize * 0.5, speakerSize, 1);
-    
-    // Speaker cone
-    beginShape();
-    vertex(x - speakerSize/2 + speakerSize * 0.5, y - speakerSize/2);
-    vertex(x + speakerSize/2, y - speakerSize/2 - speakerSize * 0.3);
-    vertex(x + speakerSize/2, y + speakerSize/2 + speakerSize * 0.3);
-    vertex(x - speakerSize/2 + speakerSize * 0.5, y + speakerSize/2);
-    endShape(CLOSE);
-    
-    // X mark
-    stroke(255);
+    stroke(255, mouseOverButton ? 255 : 200);
     strokeWeight(2);
-    let xSize = speakerSize * 0.8;
-    let xOffset = speakerSize * 0.7;
-    line(x + xOffset - xSize/2, y - xSize/2, x + xOffset + xSize/2, y + xSize/2);
-    line(x + xOffset - xSize/2, y + xSize/2, x + xOffset + xSize/2, y - xSize/2);
-    noStroke();
-    rectMode(CENTER);
+    let waveSize = iconSize * 0.4;
+    arc(speakerX + iconSize/4, speakerY, waveSize, waveSize, -PI/3, PI/3);
+    arc(speakerX + iconSize/4, speakerY, waveSize * 1.5, waveSize * 1.5, -PI/3, PI/3);
+  } else {
+    // X mark when muted
+    stroke(255, mouseOverButton ? 255 : 200);
+    strokeWeight(2);
+    let xSize = iconSize * 0.3;
+    line(x + xSize, y - xSize, x + xSize * 2, y + xSize);
+    line(x + xSize * 2, y - xSize, x + xSize, y + xSize);
   }
 }
 
@@ -2024,7 +2010,7 @@ function drawGameOver() {
   text(puntaje, width/2, scoreY + 15);
   
   // Restart button with hover effect
-  let buttonWidth = modalWidth * 0.5;
+  let buttonWidth = modalWidth * 0.5; // Same width for both mobile and desktop
   let buttonHeight = isMobile ? 45 : 55;
   
   // Check if mouse is over button
