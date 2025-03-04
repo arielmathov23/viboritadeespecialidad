@@ -205,6 +205,14 @@ function setup() {
     adjustForMobile();
     setupMobileControls();
     
+    // Remove any existing input fields first to prevent duplication
+    let existingInputs = document.querySelectorAll('input:not([data-system-input])');
+    existingInputs.forEach(input => {
+      if (input.parentNode) {
+        input.remove();
+      }
+    });
+    
     // Create a hidden input element for mobile keyboard
     createMobileInputField();
   }
@@ -248,16 +256,24 @@ function createMobileInputField() {
     existingInput.remove();
   }
   
+  // Also check for and remove any other input fields that might have been created
+  let allInputs = document.querySelectorAll('input:not([id="mobileNameInput"])');
+  allInputs.forEach(input => {
+    if (input.parentNode && !input.hasAttribute('data-system-input')) {
+      input.remove();
+    }
+  });
+  
   // Create a new input field
   let inputField = document.createElement('input');
   inputField.id = 'mobileNameInput';
   inputField.type = 'text';
   inputField.maxLength = 15;
   inputField.placeholder = 'Tu nombre';
-  inputField.style.position = 'absolute';
+  inputField.style.position = 'fixed'; // Use fixed positioning for better mobile handling
   inputField.style.left = '-1000px'; // Hide it off-screen initially
   inputField.style.top = '0';
-  inputField.style.zIndex = '1000';
+  inputField.style.zIndex = '2000'; // Higher z-index to ensure it's above everything
   inputField.style.fontSize = '18px'; // Larger font size for better visibility
   inputField.style.padding = '12px';
   inputField.style.borderRadius = '8px';
@@ -268,6 +284,8 @@ function createMobileInputField() {
   inputField.style.outline = 'none'; // Remove default focus outline
   inputField.style.webkitAppearance = 'none'; // Remove default iOS styling
   inputField.style.touchAction = 'manipulation'; // Optimize for touch
+  inputField.style.width = '280px'; // Set a fixed width
+  inputField.style.height = '45px'; // Set a fixed height
   
   // Add event listeners
   inputField.addEventListener('input', function() {
@@ -278,11 +296,15 @@ function createMobileInputField() {
     // Hide the input when not in focus, but with a delay to allow for taps
     setTimeout(() => {
       this.style.left = '-1000px';
+      this.style.display = 'none'; // Also hide it completely
     }, 300);
   });
   
   // Add to document
   document.body.appendChild(inputField);
+  
+  // Return the input field for reference
+  return inputField;
 }
 
 // Show the mobile input field
@@ -320,12 +342,31 @@ function showMobileInput(x, y) {
     inputField.style.zIndex = '2000'; // Ensure it's above everything
     inputField.value = textoNombre;
     
+    // Clear any existing focus timeouts to prevent multiple focus attempts
+    if (window.inputFocusTimeout) {
+      clearTimeout(window.inputFocusTimeout);
+    }
+    
     // Force focus with a slight delay to ensure it works on all mobile browsers
-    setTimeout(function() {
+    window.inputFocusTimeout = setTimeout(function() {
+      // Blur any active element first to prevent double input fields
+      if (document.activeElement && document.activeElement !== inputField) {
+        document.activeElement.blur();
+      }
+      
+      // Now focus our input field
       inputField.focus();
+      
       // Some mobile browsers need a click event to show keyboard
-      inputField.click();
-    }, 100);
+      try {
+        inputField.click();
+      } catch (e) {
+        console.log("Click simulation failed, trying alternative focus method");
+        // Alternative focus method for problematic browsers
+        inputField.readOnly = false;
+        inputField.focus();
+      }
+    }, 200); // Slightly longer delay to ensure UI is ready
   }
 }
 
@@ -368,7 +409,7 @@ function drawNombreIngreso() {
   // Simple, evenly spaced layout - adjusted for mobile
   let centerY = height/2 - 50; // Adjusted center point
   let titleY = centerY - modalHeight * 0.28;
-  let subtitleY = titleY + (isMobile ? 30 : 35);
+  let subtitleY = titleY + (isMobile ? 45 : 55); // Increased space between title and subtitle
   let labelY = centerY - (isMobile ? 5 : 30);
   let inputY = centerY + (isMobile ? 20 : 20);
   let buttonY = centerY + modalHeight * 0.25;
@@ -381,8 +422,7 @@ function drawNombreIngreso() {
   textSize(isMobile ? 22 : 28); // Reduced size for mobile
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
-  text('¡Bienvenido a', width/2, titleY - (isMobile ? 12 : 20));
-  text('Viborita de Especialidad!', width/2, titleY + (isMobile ? 12 : 20));
+  text('¡Viborita de Especialidad!', width/2, titleY + (isMobile ? 12 : 20));
   
   // Draw subtitle - appropriate size for mobile
   drawingContext.shadowBlur = 5;
@@ -419,6 +459,17 @@ function drawNombreIngreso() {
     textSize(14); // Smaller text
     fill(180, 180, 180);
     text('Toca aquí para escribir', width/2, inputY + 35);
+    
+    // Ensure the HTML input field is properly positioned when the modal is shown
+    // This helps prevent doubled input issues by ensuring the HTML input is in sync with the canvas
+    if (frameCount % 30 === 0) { // Only check periodically to avoid performance issues
+      let inputField = document.getElementById('mobileNameInput');
+      if (inputField && inputField.style.left !== '-1000px' && document.activeElement !== inputField) {
+        // If the input field is visible but not focused, hide it to prevent doubled input
+        inputField.style.left = '-1000px';
+        inputField.style.display = 'none';
+      }
+    }
   }
   
   // Draw start button with clean styling - appropriate size for mobile
@@ -484,8 +535,19 @@ function mousePressed() {
         mouseX < width/2 + inputWidth/2 && 
         mouseY > inputY - inputHeight/2 && 
         mouseY < inputY + inputHeight/2) {
-      // Show the mobile input field
-      showMobileInput(width/2, inputY);
+      
+      // Hide any existing visible input fields first
+      let allInputs = document.querySelectorAll('input');
+      allInputs.forEach(input => {
+        if (input.id !== 'mobileNameInput') {
+          input.style.display = 'none';
+        }
+      });
+      
+      // Show the mobile input field with a slight delay to prevent double activation
+      setTimeout(() => {
+        showMobileInput(width/2, inputY);
+      }, 50);
       return;
     }
     
@@ -507,6 +569,14 @@ function mousePressed() {
           inputField.style.left = '-1000px';
           inputField.style.display = 'none';
         }
+        
+        // Hide any other input fields that might be showing
+        let allInputs = document.querySelectorAll('input');
+        allInputs.forEach(input => {
+          if (input.id !== 'mobileNameInput') {
+            input.style.display = 'none';
+          }
+        });
       } else if (isMobile) {
         // If name is empty on mobile, show the input field
         showMobileInput(width/2, inputY);
@@ -846,8 +916,15 @@ function moverViborita() {
     currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
     
-    // Increase speed with a cap
-    velocidadActual = min(velocidadInicial * Math.pow(1.05, puntaje), 20);
+    // Increase speed more aggressively with a higher cap
+    // Use a higher multiplier (1.08 instead of 1.05) for faster speed increase
+    velocidadActual = min(velocidadInicial * Math.pow(1.08, puntaje), 25); // Higher cap (25 instead of 20)
+    
+    // Add an additional speed boost for every 5 coffees collected
+    if (puntaje % 5 === 0) {
+      velocidadActual += 1; // Extra speed boost at milestone points
+    }
+    
     frameRate(velocidadActual);
     
     // Add new bache every 3 points
