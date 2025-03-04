@@ -111,6 +111,7 @@ const PARTICLE_SPEED = 0.5;
 
 // Add current neighborhood tracking
 let currentNeighborhood = '';
+let spaceTransitionProgress = 0;
 
 // Add new variables for YouTube integration
 let isPlaying = true; // Start with music playing
@@ -137,7 +138,6 @@ const BACKGROUND_COLORS = [
   [221, 160, 221]  // Plum
 ];
 let currentBackgroundIndex = 0;
-let backgroundTransitionProgress = 0;
 
 // Add these variables at the top with other constants
 const SPACE_COLORS = [
@@ -483,7 +483,23 @@ function drawNombreIngreso() {
   let isHTMLInputActive = isMobile && inputField && 
     (inputField.style.display === 'block' || document.activeElement === inputField);
   
+  // Only draw the input box and cursor if HTML input is not active
   if (!isHTMLInputActive) {
+    // Draw input box with clean styling
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(100, 100, 255, 0.3)';
+    fill(35, 35, 55);
+    stroke('#4286f4');
+    strokeWeight(2);
+    let inputHeight = isMobile ? 45 : 50;
+    rect(width/2, inputY, inputWidth, inputHeight, 10);
+    
+    // Draw text with cursor
+    drawingContext.shadowBlur = 0;
+    noStroke();
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(isMobile ? 20 : 20);
     text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
   }
   
@@ -522,7 +538,7 @@ function drawNombreIngreso() {
   noStroke();
   textSize(isMobile ? 20 : 20);
   textStyle(BOLD);
-  text('JUGAR DE NUEVO', width/2, buttonY);
+  text('JUGAR', width/2, buttonY);
   
   // Add validation message if name is empty
   if (isMobile && textoNombre.length === 0) {
