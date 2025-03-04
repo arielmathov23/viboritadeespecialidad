@@ -748,6 +748,10 @@ function iniciarJuego() {
 // Initialize the Fran bot
 function initializeFranBot() {
   console.log("Initializing Fran bot");
+  
+  // Define minimum snake length
+  const minSnakeLength = 5;
+  
   franBot = {
     name: "Fran",
     snake: [],
@@ -759,7 +763,7 @@ function initializeFranBot() {
     coffeeTarget: null,
     coffeesToDrink: Math.floor(random(2, 9)), // Random number between 2 and 8
     currentCoffees: 0,
-    snakeLength: 5
+    snakeLength: minSnakeLength // Always start with minimum length
   };
   
   // Initialize snake in the middle of the screen
@@ -790,6 +794,7 @@ function updateFranBot() {
     franBot.currentCoffees = 0;
     franBot.coffeesToDrink = Math.floor(random(2, 9));
     franBot.score = 0;
+    franBot.snakeLength = 5; // Reset to minimum size
     
     // Reset snake position
     const startX = 300;
@@ -2194,8 +2199,18 @@ function moverViborita() {
     currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
     cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
     
-    // Increase speed with a cap
-    velocidadActual = min(velocidadInicial * Math.pow(1.05, puntaje), 20);
+    // Improved speed increase logic:
+    // 1. Use a higher multiplier (1.08 instead of 1.05) for faster speed increase
+    // 2. Higher cap (25 instead of 20) to allow for faster maximum speed
+    // 3. Add bonus speed for milestone achievements
+    velocidadActual = min(velocidadInicial * Math.pow(1.08, puntaje), 25);
+    
+    // Add bonus speed at milestone points
+    if (puntaje % 5 === 0) {
+      velocidadActual += 1; // Extra speed boost every 5 coffees
+    }
+    
+    // Apply the new speed
     frameRate(velocidadActual);
     
     // Add new bache every 3 points
@@ -2209,4 +2224,43 @@ function moverViborita() {
   
   // Send updates to server
   sendPlayerUpdate(cabeza);
+}
+
+// Restart the game after game over
+function reiniciarJuego() {
+  // Generate random starting position
+  const startX = random(SNAKE_SIZE, width - SNAKE_SIZE);
+  const startY = random(SNAKE_SIZE, height - SNAKE_SIZE);
+  
+  // Reset game state
+  snake = [{x: startX, y: startY}];
+  direction = {x: 0, y: 0};
+  cafe = generarCafe();
+  baches = [];
+  
+  // Start with just a few baches
+  for (let i = 0; i < 3; i++) {
+    let newBache = generarBache();
+    if (newBache) baches.push(newBache);
+  }
+  
+  puntaje = 0;
+  juegoTerminado = false;
+  colisionJugador = null;
+  gameOverReason = '';
+  velocidadActual = velocidadInicial;
+  frameRate(velocidadActual);
+  
+  // Notify server of restart with new position
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'restart',
+      name: nombreJugador,
+      position: {x: startX, y: startY},
+      color: myColor
+    }));
+  }
+  
+  // Reinitialize the Fran bot to ensure it's at minimum size
+  initializeFranBot();
 } 
