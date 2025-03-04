@@ -17,6 +17,10 @@ let myColor;
 let lastUpdateTime = 0;
 const UPDATE_INTERVAL = 16; // Increased update frequency (approximately 60fps)
 
+// Bot variables
+let franBot = null;
+let botUpdateTime = 0;
+
 // Darker neighborhood colors for better contrast
 const COLOR_RECOLETA = [200, 200, 210];
 const COLOR_PALERMO = [180, 210, 180];
@@ -247,6 +251,10 @@ function setup() {
   
   // Set framerate
   frameRate(velocidadInicial);
+  
+  // Initialize Fran bot directly
+  console.log("Initializing Fran bot in setup");
+  initializeFranBot();
 }
 
 // New function to adjust game parameters for mobile
@@ -732,283 +740,205 @@ function iniciarJuego() {
   
   // Initialize WebSocket connection
   initializeWebSocket(startX, startY);
+  
+  // Initialize Fran bot
+  initializeFranBot();
 }
 
-// Restart the game after game over
-function reiniciarJuego() {
-  // Generate random starting position
-  const startX = random(SNAKE_SIZE, width - SNAKE_SIZE);
-  const startY = random(SNAKE_SIZE, height - SNAKE_SIZE);
-  
-  // Reset game state
-  snake = [{x: startX, y: startY}];
-  direction = {x: 0, y: 0};
-  cafe = generarCafe();
-  baches = [];
-  
-  // Start with just a few baches
-  for (let i = 0; i < 3; i++) {
-    let newBache = generarBache();
-    if (newBache) baches.push(newBache);
-  }
-  
-  puntaje = 0;
-  juegoTerminado = false;
-  colisionJugador = null;
-  gameOverReason = '';
-  velocidadActual = velocidadInicial;
-  frameRate(velocidadActual);
-  
-  // Notify server of restart with new position
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      type: 'restart',
-      name: nombreJugador,
-      position: {x: startX, y: startY},
-      color: myColor
-    }));
-  }
-}
-
-// Add new function for drawing background effects
-function drawFancyBackground() {
-  // Create gradient background
-  let c1 = color(25, 25, 35);
-  let c2 = color(35, 35, 45);
-  
-  for (let y = 0; y < height; y++) {
-    let inter = map(y, 0, height, 0, 1);
-    let c = lerpColor(c1, c2, inter);
-    stroke(c);
-    line(0, y, width, y);
-  }
-  
-  // Draw subtle grid pattern
-  stroke(40, 40, 50, 30);
-  strokeWeight(1);
-  let gridSize = 30;
-  
-  for (let x = 0; x < width; x += gridSize) {
-    line(x, 0, x, height);
-  }
-  for (let y = 0; y < height; y += gridSize) {
-    line(0, y, width, y);
-  }
-  
-  // Update and draw particles
-  for (let particle of particles) {
-    particle.x += cos(particle.angle) * particle.speed;
-    particle.y += sin(particle.angle) * particle.speed;
-    
-    // Wrap particles around screen
-    if (particle.x < 0) particle.x = width;
-    if (particle.x > width) particle.x = 0;
-    if (particle.y < 0) particle.y = height;
-    if (particle.y > height) particle.y = 0;
-    
-    // Draw particle with glow effect
-    noStroke();
-    for (let i = 3; i > 0; i--) {
-      fill(100, 150, 255, 5);
-      ellipse(particle.x, particle.y, particle.size * i * 2);
-    }
-    fill(200, 220, 255, 150);
-    ellipse(particle.x, particle.y, particle.size);
-  }
-  
-  // Add subtle vignette effect
-  drawingContext.shadowBlur = 0;
-  let gradient = drawingContext.createRadialGradient(
-    width/2, height/2, 0,
-    width/2, height/2, width * 0.7
-  );
-  gradient.addColorStop(0, 'rgba(0,0,0,0)');
-  gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
-  drawingContext.fillStyle = gradient;
-  drawingContext.fillRect(0, 0, width, height);
-}
-
-// Modify dibujarMapaBarrios to use new background
-function dibujarMapaBarrios() {
-  drawFancyBackground();
-  
-  // Calculate the center and scale for full-screen map
-  let centerX = width / 2;
-  let centerY = height / 2;
-  let scale = min(width / VENTANA_ANCHO, height / VENTANA_ALTO);
-  let scaledWidth = VENTANA_ANCHO * scale;
-  let scaledHeight = VENTANA_ALTO * scale;
-  
-  // Draw neighborhoods with modern glass effect
-  noStroke();
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  
-  // Calculate neighborhood positions and sizes
-  let quadSize = scaledWidth / 2;
-  
-  // Draw neighborhoods with glass effect
-  function drawGlassRect(x, y, w, h, color) {
-    // Main shape
-    fill(color[0], color[1], color[2], 180);
-    rect(x, y, w, h);
-    
-    // Highlight
-    fill(255, 255, 255, 20);
-    beginShape();
-    vertex(x - w/2, y - h/2);
-    vertex(x + w/2, y - h/2);
-    vertex(x + w/2 - 20, y - h/2 + 20);
-    vertex(x - w/2 + 20, y - h/2 + 20);
-    endShape(CLOSE);
-  }
-  
-  // Draw neighborhoods with glass effect
-  drawGlassRect(centerX - quadSize/2, centerY - quadSize/2, quadSize, quadSize, COLOR_RECOLETA);
-  drawGlassRect(centerX + quadSize/2, centerY - quadSize/2, quadSize, quadSize, COLOR_PALERMO);
-  drawGlassRect(centerX - quadSize/2, centerY + quadSize/2, quadSize, quadSize, COLOR_COLEGIALES);
-  drawGlassRect(centerX + quadSize/2, centerY + quadSize/2, quadSize, quadSize, COLOR_CHACARITA);
-  
-  // Reset shadow for other elements
-  drawingContext.shadowBlur = 0;
-  
-  // Draw grid lines with fade effect
-  stroke(50);
-  strokeWeight(1);
-  
-  // Vertical grid lines
-  for (let i = 0; i <= GRILLA_ANCHO; i++) {
-    let x = centerX - scaledWidth/2 + i * (scaledWidth / GRILLA_ANCHO);
-    let alpha = map(abs(x - centerX), 0, scaledWidth/2, 50, 20);
-    stroke(50, alpha);
-    line(x, centerY - scaledHeight/2, x, centerY + scaledHeight/2);
-  }
-  
-  // Horizontal grid lines
-  for (let i = 0; i <= GRILLA_ALTO; i++) {
-    let y = centerY - scaledHeight/2 + i * (scaledHeight / GRILLA_ALTO);
-    let alpha = map(abs(y - centerY), 0, scaledHeight/2, 50, 20);
-    stroke(50, alpha);
-    line(centerX - scaledWidth/2, y, centerX + scaledWidth/2, y);
-  }
-  
-  // Draw neighborhood labels with enhanced style
-  drawNeighborhoodLabel("RECOLETA", centerX - quadSize/2, centerY - scaledHeight/2 + 30);
-  drawNeighborhoodLabel("PALERMO", centerX + quadSize/2, centerY - scaledHeight/2 + 30);
-  drawNeighborhoodLabel("COLEGIALES", centerX - quadSize/2, centerY + scaledHeight/2 - 30);
-  drawNeighborhoodLabel("CHACARITA", centerX + quadSize/2, centerY + scaledHeight/2 - 30);
-}
-
-// Helper function to draw stylish neighborhood labels
-function drawNeighborhoodLabel(name, x, y) {
-  // Background pill shape with a more distinctive color
-  fill(30, 30, 40, 200);
-  let labelWidth = textWidth(name) + 40;
-  let labelHeight = 30;
-  rect(x, y, labelWidth, labelHeight, 15);
-  
-  // Add a subtle glow effect
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-  stroke(100, 200, 255, 150);
-  strokeWeight(2);
-  noFill();
-  rect(x, y, labelWidth, labelHeight, 15);
-  noStroke();
-  
-  // Text with improved styling
-  fill(255);
-  textSize(16);
-  textStyle(BOLD);
-  textAlign(CENTER, CENTER);
-  text(name, x, y);
-  
-  drawingContext.shadowBlur = 0;
-}
-
-// Move the viborita based on current direction
-function moverViborita() {
-  let cabeza = {
-    x: snake[0].x + direction.x,
-    y: snake[0].y + direction.y
+// Initialize the Fran bot
+function initializeFranBot() {
+  console.log("Initializing Fran bot");
+  franBot = {
+    name: "Fran",
+    snake: [],
+    direction: { x: MOVE_SPEED, y: 0 }, // Use MOVE_SPEED constant for consistency
+    score: 0,
+    color: [255, 0, 0], // Bright red
+    drinkingCoffee: false,
+    drinkingStartTime: 0,
+    coffeeTarget: null,
+    coffeesToDrink: Math.floor(random(2, 9)), // Random number between 2 and 8
+    currentCoffees: 0,
+    snakeLength: 5
   };
   
-  // Check border collision
-  if (cabeza.x < 0 || cabeza.x > width || cabeza.y < 0 || cabeza.y > height) {
-    juegoTerminado = true;
-    gameOverReason = 'border';
-    return;
+  // Initialize snake in the middle of the screen
+  const startX = 300;
+  const startY = 300;
+  franBot.snake = [];
+  for (let i = 0; i < franBot.snakeLength; i++) {
+    franBot.snake.push({
+      x: startX - (i * 20), // Space segments horizontally
+      y: startY
+    });
   }
   
-  // Check collision with other players only if not drinking
-  if (!drinkingCoffee) {
-    let collidedPlayer = checkPlayerCollisions(cabeza);
-    if (collidedPlayer) {
-      juegoTerminado = true;
-      colisionJugador = collidedPlayer;
-      return;
+  console.log("Fran bot initialized with snake:", franBot.snake);
+  console.log("Bot will be drawn at position:", franBot.snake[0]);
+  
+  // Set initial bot update time
+  botUpdateTime = millis();
+}
+
+// Update the Fran bot
+function updateFranBot() {
+  if (!franBot) return;
+  
+  // Check if we need to drink more coffee
+  if (franBot.currentCoffees >= franBot.coffeesToDrink) {
+    console.log(`Bot Fran resetting after drinking ${franBot.currentCoffees} coffees`);
+    franBot.currentCoffees = 0;
+    franBot.coffeesToDrink = Math.floor(random(2, 9));
+    franBot.score = 0;
+    
+    // Reset snake position
+    const startX = 300;
+    const startY = 300;
+    franBot.snake = [];
+    for (let i = 0; i < franBot.snakeLength; i++) {
+      franBot.snake.push({
+        x: startX - (i * 20),
+        y: startY
+      });
     }
+    franBot.direction = { x: MOVE_SPEED, y: 0 }; // Start moving right
   }
-  
-  snake.unshift(cabeza);
-  
-  // Check cafe collection with a more forgiving distance
-  if (cafe && !drinkingCoffee && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE * 1.2) {
-    // Start drinking animation
-    drinkingCoffee = true;
-    drinkingAnimation = 0;
-    drinkingStartTime = millis();
-    lastCoffeePosition = {x: cafe.x, y: cafe.y};
-    
-    // Update score and generate new cafe
-    puntaje += 1;
-    cafe = generarCafe();
-    currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
-    cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
-    
-    // Increase speed more aggressively with a higher cap
-    // Use a higher multiplier (1.08 instead of 1.05) for faster speed increase
-    velocidadActual = min(velocidadInicial * Math.pow(1.08, puntaje), 25); // Higher cap (25 instead of 20)
-    
-    // Add an additional speed boost for every 5 coffees collected
-    if (puntaje % 5 === 0) {
-      velocidadActual += 1; // Extra speed boost at milestone points
+
+  // If we're not drinking coffee, move towards the target
+  if (!franBot.drinkingCoffee) {
+    if (!franBot.coffeeTarget) {
+      // Generate a new random target position
+      franBot.coffeeTarget = {
+        x: random(40, 560),
+        y: random(40, 560)
+      };
     }
-    
-    frameRate(velocidadActual);
-    
-    // Add new bache every 3 points
-    if (puntaje % 3 === 0) {
-      let newBache = generarBache();
-      if (newBache) baches.push(newBache);
-    }
-    
-    // Ensure the snake segments are properly spaced to prevent self-collision
-    // This adds a small gap between segments after drinking coffee
-    for (let i = 1; i < snake.length; i++) {
-      // Slightly adjust positions to prevent false collisions
-      let angle = atan2(snake[i].y - snake[i-1].y, snake[i].x - snake[i-1].x);
-      let distance = dist(snake[i-1].x, snake[i-1].y, snake[i].x, snake[i].y);
-      let targetDist = SNAKE_SIZE * 1.1; // Slightly larger spacing
+
+    // Calculate direction to target
+    const dx = franBot.coffeeTarget.x - franBot.snake[0].x;
+    const dy = franBot.coffeeTarget.y - franBot.snake[0].y;
+    const distance = dist(franBot.snake[0].x, franBot.snake[0].y, franBot.coffeeTarget.x, franBot.coffeeTarget.y);
+
+    // If we're close enough to the target, simulate drinking coffee
+    if (distance < 20) {
+      franBot.drinkingCoffee = true;
+      franBot.drinkingStartTime = millis();
+      franBot.coffeeTarget = null;
+      franBot.currentCoffees++;
+      franBot.score++;
+      franBot.snakeLength++; // Grow snake when drinking coffee
+    } else {
+      // Decide which direction to move based on the target position
+      // Only move in one of the four cardinal directions (up, down, left, right)
       
-      if (distance < targetDist) {
-        snake[i].x = snake[i-1].x + cos(angle) * targetDist;
-        snake[i].y = snake[i-1].y + sin(angle) * targetDist;
+      // Determine if we should move horizontally or vertically
+      // If we're more off horizontally than vertically, move horizontally first
+      if (abs(dx) > abs(dy)) {
+        // Move horizontally
+        if (dx > 0) {
+          // Move right
+          franBot.direction = { x: MOVE_SPEED, y: 0 };
+        } else {
+          // Move left
+          franBot.direction = { x: -MOVE_SPEED, y: 0 };
+        }
+      } else {
+        // Move vertically
+        if (dy > 0) {
+          // Move down
+          franBot.direction = { x: 0, y: MOVE_SPEED };
+        } else {
+          // Move up
+          franBot.direction = { x: 0, y: -MOVE_SPEED };
+        }
+      }
+      
+      // Occasionally change direction randomly to make movement less predictable
+      if (random() < 0.02) { // 2% chance each frame to change direction
+        const directions = [
+          { x: MOVE_SPEED, y: 0 },   // right
+          { x: -MOVE_SPEED, y: 0 },  // left
+          { x: 0, y: MOVE_SPEED },   // down
+          { x: 0, y: -MOVE_SPEED }   // up
+        ];
+        franBot.direction = directions[Math.floor(random(directions.length))];
       }
     }
   } else {
-    snake.pop();
+    // Check if we're done drinking coffee
+    const drinkingDuration = millis() - franBot.drinkingStartTime;
+    if (drinkingDuration >= 1000) { // 1 second drinking animation
+      franBot.drinkingCoffee = false;
+    }
   }
-  
-  // Send updates to server
-  sendPlayerUpdate(cabeza);
+
+  // Update snake position
+  if (!franBot.drinkingCoffee) {
+    const newHead = {
+      x: franBot.snake[0].x + franBot.direction.x,
+      y: franBot.snake[0].y + franBot.direction.y
+    };
+
+    // Keep snake within bounds with some margin
+    const margin = 40;
+    newHead.x = constrain(newHead.x, margin, width - margin);
+    newHead.y = constrain(newHead.y, margin, height - margin);
+
+    franBot.snake.unshift(newHead);
+    while (franBot.snake.length > franBot.snakeLength) {
+      franBot.snake.pop();
+    }
+  }
 }
 
 // Draw the viborita on the canvas
 function dibujarViborita() {
+  // Draw Fran bot if it exists
+  console.log("Drawing viborita, franBot:", franBot ? "exists" : "null");
+  if (franBot) {
+    console.log("Bot snake:", franBot.snake ? `length ${franBot.snake.length}` : "null");
+  }
+  
+  if (franBot && franBot.snake && franBot.snake.length > 0) {
+    console.log("Drawing Fran bot at position:", franBot.snake[0]);
+    noStroke();
+    
+    // Draw body segments
+    for (let i = franBot.snake.length - 1; i > 0; i--) {
+      let segmento = franBot.snake[i];
+      let alpha = map(i, 0, franBot.snake.length - 1, 255, 150);
+      fill(franBot.color[0], franBot.color[1], franBot.color[2], alpha);
+      rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
+    }
+    
+    // Draw head with player name
+    let cabeza = franBot.snake[0];
+    fill(franBot.color[0], franBot.color[1], franBot.color[2]);
+    rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
+    
+    // Draw player name above head
+    fill(255);
+    textSize(14);
+    textAlign(CENTER, BOTTOM);
+    text(franBot.name, cabeza.x, cabeza.y - SNAKE_SIZE);
+    
+    // Draw drinking animation if applicable
+    if (franBot.drinkingCoffee) {
+      const progress = (millis() - franBot.drinkingStartTime) / 1000; // 0 to 1 over 1 second
+      drawCoffeeEffect(cabeza.x, cabeza.y, progress);
+    }
+  } else {
+    // If bot doesn't exist or is invalid, reinitialize it
+    console.log("Bot is invalid, reinitializing...");
+    initializeFranBot();
+  }
+  
   // Draw other players' snakes
-  otherPlayers.forEach((player) => {
-    if (player.snake) {
+  console.log('Drawing other players:', Array.from(otherPlayers.keys()));
+  
+  otherPlayers.forEach((player, playerName) => {
+    console.log('Drawing player:', playerName, player);
+    if (player.snake && player.snake.length > 0) {
       noStroke();
       
       // Draw body segments
@@ -1031,6 +961,8 @@ function dibujarViborita() {
         textAlign(CENTER, BOTTOM);
         text(player.name, cabeza.x, cabeza.y - SNAKE_SIZE);
       }
+    } else {
+      console.log('Player has no snake or empty snake:', playerName);
     }
   });
   
@@ -1808,11 +1740,15 @@ function initializeWebSocket(startX, startY) {
 
 // Update handleWebSocketMessage function to better handle position updates
 function handleWebSocketMessage(data) {
+  console.log('Received WebSocket message:', data);
+  
   switch(data.type) {
     case 'gameState':
+      console.log('Game state received with players:', data.players);
       otherPlayers.clear();
       data.players.forEach(player => {
         if (player.name !== nombreJugador) {
+          console.log('Adding other player to map:', player);
           otherPlayers.set(player.name, {
             ...player,
             lastUpdate: Date.now()
@@ -1829,6 +1765,7 @@ function handleWebSocketMessage(data) {
       
     case 'update':
       if (data.name !== nombreJugador) {
+        console.log('Received update for player:', data.name);
         const existingPlayer = otherPlayers.get(data.name);
         if (existingPlayer) {
           otherPlayers.set(data.name, {
@@ -1836,6 +1773,16 @@ function handleWebSocketMessage(data) {
             snake: data.snake,
             position: data.position,
             score: data.score,
+            lastUpdate: Date.now()
+          });
+        } else {
+          console.log('Adding new player from update:', data.name);
+          otherPlayers.set(data.name, {
+            name: data.name,
+            snake: data.snake,
+            position: data.position,
+            color: data.color || [255, 87, 51], // Default to coral if no color
+            score: data.score || 0,
             lastUpdate: Date.now()
           });
         }
@@ -2079,6 +2026,16 @@ function draw() {
   } else {
     jugar();
   }
+  
+  // Update Fran bot at a fixed interval
+  if (millis() - botUpdateTime > 50) { // 20fps update rate
+    console.log("Updating Fran bot, current state:", franBot ? "exists" : "null");
+    if (franBot) {
+      console.log("Bot position:", franBot.snake[0]);
+    }
+    updateFranBot();
+    botUpdateTime = millis();
+  }
 }
 
 // Window resize handler
@@ -2194,4 +2151,62 @@ function dibujarPuntaje() {
 // Add the missing dibujarNombre function
 function dibujarNombre() {
   // This function is not needed as the player name is now displayed in the header UI
+}
+
+// Move the viborita based on current direction
+function moverViborita() {
+  // Calculate new head position
+  let cabeza = {
+    x: snake[0].x + direction.x,
+    y: snake[0].y + direction.y
+  };
+  
+  // Check border collision
+  if (cabeza.x < 0 || cabeza.x > width || cabeza.y < 0 || cabeza.y > height) {
+    juegoTerminado = true;
+    gameOverReason = 'border';
+    return;
+  }
+  
+  // Check collision with other players only if not drinking
+  if (!drinkingCoffee) {
+    let collidedPlayer = checkPlayerCollisions(cabeza);
+    if (collidedPlayer) {
+      juegoTerminado = true;
+      colisionJugador = collidedPlayer;
+      return;
+    }
+  }
+  
+  snake.unshift(cabeza);
+  
+  // Check cafe collection with a more forgiving distance
+  if (cafe && !drinkingCoffee && dist(cabeza.x, cabeza.y, cafe.x, cafe.y) < SNAKE_SIZE * 1.2) {
+    // Start drinking animation
+    drinkingCoffee = true;
+    drinkingAnimation = 0;
+    drinkingStartTime = millis();
+    lastCoffeePosition = {x: cafe.x, y: cafe.y};
+    
+    // Update score and generate new cafe
+    puntaje += 1;
+    cafe = generarCafe();
+    currentNeighborhood = getNeighborhoodFromPosition(cafe.x, cafe.y);
+    cafeActual = CAFES_BA[currentNeighborhood][Math.floor(random(CAFES_BA[currentNeighborhood].length))];
+    
+    // Increase speed with a cap
+    velocidadActual = min(velocidadInicial * Math.pow(1.05, puntaje), 20);
+    frameRate(velocidadActual);
+    
+    // Add new bache every 3 points
+    if (puntaje % 3 === 0) {
+      let newBache = generarBache();
+      if (newBache) baches.push(newBache);
+    }
+  } else {
+    snake.pop();
+  }
+  
+  // Send updates to server
+  sendPlayerUpdate(cabeza);
 } 

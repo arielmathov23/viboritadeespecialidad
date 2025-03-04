@@ -41,16 +41,18 @@ wss.on('connection', (ws) => {
     players: [
       ...Array.from(players.entries()).map(([id, player]) => ({
         id,
+        name: id,
         ...player
       })),
       ...Array.from(bots.entries()).map(([id, bot]) => ({
         id,
+        name: id,
         ...bot
       }))
     ]
   };
   
-  console.log('Sending initial game state to new client:', JSON.stringify(initialGameState, null, 2));
+  console.log('Sending initial game state to new client with players:', initialGameState.players.length);
   ws.send(JSON.stringify(initialGameState));
 
   ws.on('message', (message) => {
@@ -98,10 +100,12 @@ wss.on('connection', (ws) => {
         players: [
           ...Array.from(players.entries()).map(([id, player]) => ({
             id,
+            name: id,
             ...player
           })),
           ...Array.from(bots.entries()).map(([id, bot]) => ({
             id,
+            name: id,
             ...bot
           }))
         ]
@@ -145,103 +149,142 @@ function createBot() {
   const botId = 'Fran'; // Fixed name for the bot
   console.log(`Creating bot with ID: ${botId}`);
   
-  const bot = new SnakeBot(botId);
+  try {
+    const bot = new SnakeBot(botId);
+    
+    // Add bot to the bots map with initial state
+    const botState = {
+      name: botId,
+      color: bot.color,
+      position: bot.snake[0],
+      snake: bot.snake,
+      score: 0,
+      isBot: true
+    };
+    
+    bots.set(botId, botState);
+    console.log(`Bot ${botId} added to bots map with state:`, JSON.stringify(botState, null, 2));
+    
+    // Start the bot
+    bot.startPlaying();
+    
+    // Immediately broadcast the bot to all clients
+    broadcastBot(bot);
+    
+    // Set up bot update interval
+    const updateInterval = setInterval(() => {
+      if (bots.has(botId) && bot.snake && bot.snake.length > 0) {
+        // Update bot state
+        const updatedState = {
+          name: botId,
+          color: bot.color,
+          position: bot.snake[0],
+          snake: bot.snake,
+          score: bot.score,
+          isBot: true
+        };
+        
+        bots.set(botId, updatedState);
+        
+        // Log bot state periodically (every 5 seconds)
+        const now = Date.now();
+        if (!bot.lastLog || now - bot.lastLog > 5000) {
+          console.log(`Bot ${botId} state update:`, JSON.stringify({
+            position: bot.snake[0],
+            snakeLength: bot.snake.length,
+            score: bot.score
+          }, null, 2));
+          bot.lastLog = now;
+        }
+        
+        // Broadcast bot update to all clients
+        broadcastBot(bot);
+      } else {
+        console.log(`Bot ${botId} state invalid:`, {
+          exists: bots.has(botId),
+          hasSnake: bot.snake !== undefined,
+          snakeLength: bot.snake ? bot.snake.length : 0
+        });
+        
+        // Try to reinitialize the bot
+        bot.initializeSnake();
+        bot.startPlaying();
+      }
+    }, 50); // Update more frequently (20fps)
+    
+    return botId;
+  } catch (error) {
+    console.error('Error creating bot:', error);
+    return null;
+  }
+}
+
+// Function to broadcast bot state to all clients
+function broadcastBot(bot) {
+  if (!bot || !bot.snake || bot.snake.length === 0) {
+    console.log('Cannot broadcast bot with invalid state');
+    return;
+  }
   
-  // Add bot to the bots map with initial state
-  const botState = {
-    name: botId,
-    color: bot.color,
+  const botData = {
+    type: 'update',
+    name: bot.name,
     position: bot.snake[0],
     snake: bot.snake,
-    score: 0,
+    score: bot.score,
+    direction: bot.direction,
+    color: bot.color,
     isBot: true
   };
   
-  bots.set(botId, botState);
-  console.log(`Bot ${botId} added to bots map with state:`, JSON.stringify(botState, null, 2));
-  
-  // Start the bot
-  bot.startPlaying();
-  
-  // Set up bot update interval
-  const updateInterval = setInterval(() => {
-    if (bots.has(botId) && bot.snake.length > 0) {
-      // Update bot state
-      const botData = {
-        type: 'update',
-        name: botId,
-        position: bot.snake[0],
-        snake: bot.snake,
-        score: bot.score,
-        direction: bot.direction,
-        isBot: true,
-        color: bot.color
-      };
-      
-      // Update the bot's state in the bots map
-      const updatedState = {
-        name: botId,
-        color: bot.color,
-        position: bot.snake[0],
-        snake: bot.snake,
-        score: bot.score,
-        isBot: true
-      };
-      
-      bots.set(botId, updatedState);
-      
-      // Log bot state periodically (every 5 seconds)
-      const now = Date.now();
-      if (!bot.lastLog || now - bot.lastLog > 5000) {
-        console.log(`Bot ${botId} state update:`, JSON.stringify(botData, null, 2));
-        bot.lastLog = now;
-      }
-      
-      // Broadcast bot update to all clients
-      const botUpdateMsg = JSON.stringify(botData);
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(botUpdateMsg);
-          
-          // Also send a gameState update
-          const gameState = {
-            type: 'gameState',
-            players: [
-              ...Array.from(players.entries()).map(([id, player]) => ({
-                id,
-                ...player
-              })),
-              ...Array.from(bots.entries()).map(([id, bot]) => ({
-                id,
-                ...bot
-              }))
-            ]
-          };
-          client.send(JSON.stringify(gameState));
-        }
-      });
-    } else {
-      console.log(`Bot ${botId} state invalid:`, {
-        exists: bots.has(botId),
-        snakeLength: bot.snake.length
-      });
-      clearInterval(updateInterval);
+  const botUpdateMsg = JSON.stringify(botData);
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(botUpdateMsg);
     }
-  }, 50); // Update more frequently (20fps)
+  });
   
-  return botId;
+  // Also send a full game state update periodically
+  const now = Date.now();
+  if (!lastGameStateUpdate || now - lastGameStateUpdate > 1000) {
+    const gameState = {
+      type: 'gameState',
+      players: [
+        ...Array.from(players.entries()).map(([id, player]) => ({
+          id,
+          name: id,
+          ...player
+        })),
+        ...Array.from(bots.entries()).map(([id, bot]) => ({
+          id,
+          name: id,
+          ...bot
+        }))
+      ]
+    };
+    
+    const gameStateMsg = JSON.stringify(gameState);
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(gameStateMsg);
+      }
+    });
+    
+    lastGameStateUpdate = now;
+  }
 }
 
 // Create just one bot with fixed name
 console.log('Creating Fran bot...');
+let lastGameStateUpdate = 0;
 const franBot = createBot();
-console.log('Fran bot created successfully');
+console.log('Fran bot created successfully:', franBot);
 
 // Log the current state of bots every 10 seconds
 setInterval(() => {
   console.log('Current game state:', {
-    players: Array.from(players.entries()),
-    bots: Array.from(bots.entries()),
+    players: Array.from(players.keys()),
+    bots: Array.from(bots.keys()),
     connections: wss.clients.size
   });
 }, 10000);

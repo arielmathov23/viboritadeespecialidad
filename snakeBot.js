@@ -8,7 +8,7 @@ class SnakeBot {
     this.snake = [];
     this.direction = { x: 8, y: 0 }; // Start moving right
     this.score = 0;
-    this.color = [255, 87, 51]; // Fixed coral color for visibility
+    this.color = [255, 0, 0]; // Bright red for maximum visibility
     this.drinkingCoffee = false;
     this.drinkingStartTime = 0;
     this.lastUpdateTime = 0;
@@ -23,7 +23,8 @@ class SnakeBot {
     console.log(`Bot ${name} initial state:`, {
       position: this.snake[0],
       direction: this.direction,
-      color: this.color
+      color: this.color,
+      snakeLength: this.snake.length
     });
   }
 
@@ -47,8 +48,8 @@ class SnakeBot {
   }
 
   getRandomColor() {
-    // Always return coral color for better visibility
-    return [255, 87, 51];
+    // Always return bright red for maximum visibility
+    return [255, 0, 0];
   }
 
   startPlaying() {
@@ -72,7 +73,11 @@ class SnakeBot {
   }
 
   updateBot() {
-    if (!this.isPlaying) return;
+    if (!this.isPlaying) {
+      console.log(`Bot ${this.name} is not playing, restarting...`);
+      this.startPlaying();
+      return;
+    }
 
     // Check if we need to drink more coffee
     if (this.currentCoffees >= this.coffeesToDrink) {
