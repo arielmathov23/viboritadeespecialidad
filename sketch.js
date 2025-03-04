@@ -114,18 +114,16 @@ let currentNeighborhood = '';
 
 // Add new variables for YouTube integration
 let isPlaying = true; // Start with music playing
-const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
-// Add playlist of songs to play in sequence
 const YOUTUBE_PLAYLIST = [
   "DTZKSgR9aEc", // Original song
   "C2lExkboJnA", // Mi Amigo Invencible
   "qgSGmEUncNE", // Vinocio
   "O8BLUzAxNmQ"  // Nathy Peluso
 ];
-let currentSongIndex = 0;
-// Shuffle the playlist (except the first song which always plays first)
-let shuffledPlaylist = [];
-const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_PLAYLIST[0]}?enablejsapi=1&autoplay=1&controls=0&modestbranding=1`;
+
+// Start with a random song index
+let currentSongIndex = Math.floor(Math.random() * YOUTUBE_PLAYLIST.length);
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_PLAYLIST[currentSongIndex]}?enablejsapi=1&autoplay=1&controls=0&modestbranding=1`;
 let youtubePlayer = null;
 
 // Add these variables at the top with other constants
@@ -480,10 +478,11 @@ function drawNombreIngreso() {
   noStroke();
   fill(255);
   textAlign(CENTER, CENTER);
-  textSize(isMobile ? 20 : 20); // Reduced size for mobile
+  textSize(isMobile ? 20 : 20);
   
   let inputField = document.getElementById('mobileNameInput');
-  let isHTMLInputActive = isMobile && inputField && inputField.style.left !== '-1000px';
+  let isHTMLInputActive = isMobile && inputField && 
+    (inputField.style.display === 'block' || document.activeElement === inputField);
   
   if (!isHTMLInputActive) {
     text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
@@ -491,15 +490,15 @@ function drawNombreIngreso() {
   
   // Add touch instructions for mobile
   if (isMobile) {
-    textSize(14); // Smaller text
+    textSize(14);
     fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 45); // Increased space from 35 to 45
+    text('Toca aquí para escribir', width/2, inputY + 45);
     
-    // Ensure the HTML input field is properly positioned when the modal is shown
-    // This helps prevent doubled input issues by ensuring the HTML input is in sync with the canvas
-    if (frameCount % 30 === 0) { // Only check periodically to avoid performance issues
-      if (inputField && inputField.style.left !== '-1000px' && document.activeElement !== inputField) {
-        // If the input field is visible but not focused, hide it to prevent doubled input
+    // More aggressive check for input field visibility
+    if (frameCount % 15 === 0) { // Check more frequently
+      if (inputField && 
+          inputField.style.display === 'block' && 
+          document.activeElement !== inputField) {
         inputField.style.left = '-1000px';
         inputField.style.display = 'none';
       }
@@ -1433,19 +1432,15 @@ function shuffleArray(array) {
 function onPlayerReady(event) {
   event.target.playVideo();
   isPlaying = true;
-  
-  // Create a shuffled playlist (keeping the first song as is)
-  const firstSong = YOUTUBE_PLAYLIST[0];
-  const remainingSongs = YOUTUBE_PLAYLIST.slice(1);
-  shuffledPlaylist = [firstSong, ...shuffleArray(remainingSongs)];
 }
 
 function onPlayerStateChange(event) {
-  // If video ends, play a random song from the playlist
+  // If video ends, play the next song in the playlist
   if (event.data === YT.PlayerState.ENDED) {
-    currentSongIndex = (currentSongIndex + 1) % shuffledPlaylist.length;
+    // Move to next song, wrapping around to beginning if needed
+    currentSongIndex = (currentSongIndex + 1) % YOUTUBE_PLAYLIST.length;
     if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
-      youtubePlayer.loadVideoById(shuffledPlaylist[currentSongIndex]);
+      youtubePlayer.loadVideoById(YOUTUBE_PLAYLIST[currentSongIndex]);
     }
   }
 }
