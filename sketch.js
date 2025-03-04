@@ -115,7 +115,17 @@ let currentNeighborhood = '';
 // Add new variables for YouTube integration
 let isPlaying = true; // Start with music playing
 const YOUTUBE_VIDEO_ID = "DTZKSgR9aEc";
-const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?enablejsapi=1&autoplay=1&loop=1&controls=0&modestbranding=1`;
+// Add playlist of songs to play in sequence
+const YOUTUBE_PLAYLIST = [
+  "DTZKSgR9aEc", // Original song
+  "C2lExkboJnA", // Mi Amigo Invencible
+  "qgSGmEUncNE", // Vinocio
+  "O8BLUzAxNmQ"  // Nathy Peluso
+];
+let currentSongIndex = 0;
+// Shuffle the playlist (except the first song which always plays first)
+let shuffledPlaylist = [];
+const YOUTUBE_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_PLAYLIST[0]}?enablejsapi=1&autoplay=1&controls=0&modestbranding=1`;
 let youtubePlayer = null;
 
 // Add these variables at the top with other constants
@@ -311,6 +321,11 @@ function createMobileInputField() {
 function showMobileInput(x, y) {
   let inputField = document.getElementById('mobileNameInput');
   if (inputField) {
+    // First, hide any system keyboard that might be showing
+    if (document.activeElement && document.activeElement !== inputField) {
+      document.activeElement.blur();
+    }
+    
     // Hide any existing HTML input fields that might be showing
     let allInputs = document.querySelectorAll('input');
     allInputs.forEach(input => {
@@ -322,7 +337,7 @@ function showMobileInput(x, y) {
     // Calculate position to center the input field - fixed position in the center
     // Adjust for the modal being moved up by 50px
     let centerY = height/2 - 50; // Adjusted center point
-    let inputY = centerY + 20; // Match the position in the modal
+    let inputY = centerY + 25; // Updated to match the new position in the modal
     
     let inputWidth = 280;
     let inputHeight = 45;
@@ -366,7 +381,7 @@ function showMobileInput(x, y) {
         inputField.readOnly = false;
         inputField.focus();
       }
-    }, 200); // Slightly longer delay to ensure UI is ready
+    }, 300); // Longer delay to ensure UI is ready and any other inputs are dismissed
   }
 }
 
@@ -410,9 +425,11 @@ function drawNombreIngreso() {
   let centerY = height/2 - 50; // Adjusted center point
   let titleY = centerY - modalHeight * 0.28;
   let subtitleY = titleY + (isMobile ? 45 : 55); // Increased space between title and subtitle
-  let labelY = centerY - (isMobile ? 5 : 30);
-  let inputY = centerY + (isMobile ? 20 : 20);
-  let buttonY = centerY + modalHeight * 0.25;
+  
+  // For mobile, increase space between elements
+  let labelY = centerY - (isMobile ? 15 : 30); // Moved up for mobile
+  let inputY = centerY + (isMobile ? 25 : 20); // Moved down for mobile
+  let buttonY = centerY + (isMobile ? modalHeight * 0.32 : modalHeight * 0.25); // Moved down for mobile
   
   // Draw title with clean, elegant styling - smaller on mobile
   noStroke();
@@ -458,7 +475,7 @@ function drawNombreIngreso() {
   if (isMobile) {
     textSize(14); // Smaller text
     fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 35);
+    text('', width/2, inputY + 45); // Increased space from 35 to 45
     
     // Ensure the HTML input field is properly positioned when the modal is shown
     // This helps prevent doubled input issues by ensuring the HTML input is in sync with the canvas
@@ -524,10 +541,10 @@ function mousePressed() {
     let centerY = height/2 - 50; // Adjusted center point
     let inputWidth = modalWidth * 0.8;
     let inputHeight = isMobile ? 45 : 50;
-    let inputY = centerY + (isMobile ? 20 : 20);
+    let inputY = centerY + (isMobile ? 25 : 20); // Updated to match drawNombreIngreso
     let buttonWidth = inputWidth * 0.55;
     let buttonHeight = isMobile ? 45 : 55;
-    let buttonY = centerY + modalHeight * 0.25;
+    let buttonY = centerY + (isMobile ? modalHeight * 0.32 : modalHeight * 0.25); // Updated to match drawNombreIngreso
     
     // Check if input field was clicked
     if (isMobile && 
@@ -544,10 +561,15 @@ function mousePressed() {
         }
       });
       
-      // Show the mobile input field with a slight delay to prevent double activation
+      // Blur any active element to prevent keyboard conflicts
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+      
+      // Show the mobile input field with a delay to prevent double activation
       setTimeout(() => {
         showMobileInput(width/2, inputY);
-      }, 50);
+      }, 100);
       return;
     }
     
@@ -1380,16 +1402,34 @@ function initYoutubePlayer() {
   }
 }
 
+// Function to shuffle an array (Fisher-Yates algorithm)
+function shuffleArray(array) {
+  let shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // YouTube API callbacks
 function onPlayerReady(event) {
   event.target.playVideo();
   isPlaying = true;
+  
+  // Create a shuffled playlist (keeping the first song as is)
+  const firstSong = YOUTUBE_PLAYLIST[0];
+  const remainingSongs = YOUTUBE_PLAYLIST.slice(1);
+  shuffledPlaylist = [firstSong, ...shuffleArray(remainingSongs)];
 }
 
 function onPlayerStateChange(event) {
-  // If video ends, replay it
+  // If video ends, play a random song from the playlist
   if (event.data === YT.PlayerState.ENDED) {
-    event.target.playVideo();
+    currentSongIndex = (currentSongIndex + 1) % shuffledPlaylist.length;
+    if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
+      youtubePlayer.loadVideoById(shuffledPlaylist[currentSongIndex]);
+    }
   }
 }
 
