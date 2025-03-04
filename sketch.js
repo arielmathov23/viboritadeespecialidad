@@ -501,23 +501,6 @@ function drawNombreIngreso() {
     }
   }
   
-  // Add touch instructions for mobile
-  if (isMobile) {
-    textSize(14);
-    fill(180, 180, 180);
-    text('Toca aquí para escribir', width/2, inputY + 45);
-    
-    // More aggressive check for input field visibility
-    if (frameCount % 15 === 0) { // Check more frequently
-      if (inputField && 
-          inputField.style.display === 'block' && 
-          document.activeElement !== inputField) {
-        inputField.style.left = '-1000px';
-        inputField.style.display = 'none';
-      }
-    }
-  }
-  
   // Draw start button with clean styling - appropriate size for mobile
   let buttonWidth = modalWidth * 0.7; // Increased from 0.5 to 0.7 for better text fit
   let buttonHeight = isMobile ? 50 : 55;
