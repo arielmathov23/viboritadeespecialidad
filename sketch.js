@@ -149,7 +149,6 @@ const SPACE_COLORS = [
   [40, 30, 20]     // Orange space
 ];
 let currentSpaceIndex = 0;
-let spaceTransitionProgress = 0;
 let stars = [];
 const NUM_STARS = 200;
 
@@ -488,6 +487,20 @@ function drawNombreIngreso() {
     text(textoNombre + (frameCount % 60 < 30 ? '|' : ''), width/2, inputY);
   }
   
+  if (isMobile) {
+    // More aggressive check for input field visibility
+    if (frameCount % 15 === 0) {
+      if (inputField && 
+          inputField.style.display === 'block' && 
+          document.activeElement !== inputField) {
+        inputField.style.left = '-1000px';
+        inputField.style.display = 'none';
+        // Force blur to ensure keyboard is hidden
+        inputField.blur();
+      }
+    }
+  }
+  
   // Add touch instructions for mobile
   if (isMobile) {
     textSize(14);
@@ -506,8 +519,8 @@ function drawNombreIngreso() {
   }
   
   // Draw start button with clean styling - appropriate size for mobile
-  let buttonWidth = inputWidth * 0.6; // Narrower button
-  let buttonHeight = isMobile ? 50 : 55; // Slightly smaller button
+  let buttonWidth = modalWidth * 0.7; // Increased from 0.5 to 0.7 for better text fit
+  let buttonHeight = isMobile ? 50 : 55;
   let buttonHover = mouseX > width/2 - buttonWidth/2 && 
                    mouseX < width/2 + buttonWidth/2 && 
                    mouseY > buttonY - buttonHeight/2 && 
@@ -520,13 +533,13 @@ function drawNombreIngreso() {
   strokeWeight(2);
   rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
   
-  // Button text - appropriate size for mobile
+  // Button text
   drawingContext.shadowBlur = 0;
   fill(255);
   noStroke();
-  textSize(isMobile ? 22 : 20); // Reduced size for mobile
+  textSize(isMobile ? 20 : 20);
   textStyle(BOLD);
-  text('¡JUGAR!', width/2, buttonY);
+  text('JUGAR DE NUEVO', width/2, buttonY);
   
   // Add validation message if name is empty
   if (isMobile && textoNombre.length === 0) {
