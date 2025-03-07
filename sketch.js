@@ -899,29 +899,33 @@ function updateFranBot() {
 // Draw the viborita on the canvas
 function dibujarViborita() {
   // Draw Fran bot if it exists
-  console.log("Drawing viborita, franBot:", franBot ? "exists" : "null");
-  if (franBot) {
-    console.log("Bot snake:", franBot.snake ? `length ${franBot.snake.length}` : "null");
-  }
-  
   if (franBot && franBot.snake && franBot.snake.length > 0) {
-    console.log("Drawing Fran bot at position:", franBot.snake[0]);
     noStroke();
     
-    // Draw body segments
+    // Draw body segments with cosmic trail effect
     for (let i = franBot.snake.length - 1; i > 0; i--) {
       let segmento = franBot.snake[i];
-      let alpha = map(i, 0, franBot.snake.length - 1, 255, 150);
+      let alpha = map(i, 0, franBot.snake.length - 1, 150, 255);
+      let segSize = map(i, 0, franBot.snake.length - 1, SNAKE_SIZE * 0.5, SNAKE_SIZE);
+      
+      // Glow effect for bot snake
+      drawingContext.shadowBlur = 10;
+      drawingContext.shadowColor = `rgba(${franBot.color[0]}, ${franBot.color[1]}, ${franBot.color[2]}, 0.5)`;
+      
       fill(franBot.color[0], franBot.color[1], franBot.color[2], alpha);
-      rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
+      rect(segmento.x, segmento.y, segSize, segSize, 8);
     }
     
     // Draw head with player name
     let cabeza = franBot.snake[0];
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = `rgba(${franBot.color[0]}, ${franBot.color[1]}, ${franBot.color[2]}, 0.8)`;
     fill(franBot.color[0], franBot.color[1], franBot.color[2]);
     rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
     
-    // Draw player name above head
+    // Draw player name above head with glow
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.7)';
     fill(255);
     textSize(14);
     textAlign(CENTER, BOTTOM);
@@ -932,74 +936,99 @@ function dibujarViborita() {
       const progress = (millis() - franBot.drinkingStartTime) / 1000; // 0 to 1 over 1 second
       drawCoffeeEffect(cabeza.x, cabeza.y, progress);
     }
-  } else {
+    
+    drawingContext.shadowBlur = 0;
+  } else if (franBot) {
     // If bot doesn't exist or is invalid, reinitialize it
-    console.log("Bot is invalid, reinitializing...");
     initializeFranBot();
   }
   
   // Draw other players' snakes
-  console.log('Drawing other players:', Array.from(otherPlayers.keys()));
-  
   otherPlayers.forEach((player, playerName) => {
-    console.log('Drawing player:', playerName, player);
     if (player.snake && player.snake.length > 0) {
       noStroke();
       
-      // Draw body segments
+      // Draw body segments with cosmic trail effect
       for (let i = player.snake.length - 1; i > 0; i--) {
         let segmento = player.snake[i];
-        let alpha = map(i, 0, player.snake.length - 1, 255, 150);
+        let alpha = map(i, 0, player.snake.length - 1, 150, 255);
+        let segSize = map(i, 0, player.snake.length - 1, SNAKE_SIZE * 0.5, SNAKE_SIZE);
+        
+        // Glow effect for other player snakes
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = `rgba(${player.color[0]}, ${player.color[1]}, ${player.color[2]}, 0.5)`;
+        
         fill(player.color[0], player.color[1], player.color[2], alpha);
-        rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
+        rect(segmento.x, segmento.y, segSize, segSize, 8);
       }
       
       // Draw head with player name
       if (player.snake.length > 0) {
         let cabeza = player.snake[0];
+        drawingContext.shadowBlur = 15;
+        drawingContext.shadowColor = `rgba(${player.color[0]}, ${player.color[1]}, ${player.color[2]}, 0.8)`;
         fill(player.color[0], player.color[1], player.color[2]);
         rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
         
-        // Draw player name above head
+        // Draw player name above head with glow
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = 'rgba(255, 255, 255, 0.7)';
         fill(255);
         textSize(14);
         textAlign(CENTER, BOTTOM);
         text(player.name, cabeza.x, cabeza.y - SNAKE_SIZE);
       }
-    } else {
-      console.log('Player has no snake or empty snake:', playerName);
     }
   });
+  
+  drawingContext.shadowBlur = 0;
   
   // Reset drawing settings
   noStroke();
   rectMode(CENTER);
   
-  // Draw local player's snake body
+  // Draw local player's snake body with cosmic trail effect
   for (let i = snake.length - 1; i > 0; i--) {
     let segmento = snake[i];
-    let alpha = map(i, 0, snake.length - 1, 255, 150);
+    let alpha = map(i, 0, snake.length - 1, 150, 255);
+    let segSize = map(i, 0, snake.length - 1, SNAKE_SIZE * 0.5, SNAKE_SIZE);
+    
+    // Player snake glow
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = `rgba(${myColor ? myColor[0] : COLOR_VIBORITA[0]}, 
+                                       ${myColor ? myColor[1] : COLOR_VIBORITA[1]}, 
+                                       ${myColor ? myColor[2] : COLOR_VIBORITA[2]}, 0.6)`;
+    
     fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
          myColor ? myColor[1] : COLOR_VIBORITA[1], 
          myColor ? myColor[2] : COLOR_VIBORITA[2], 
          alpha);
-    rect(segmento.x, segmento.y, SNAKE_SIZE, SNAKE_SIZE, 5);
+    rect(segmento.x, segmento.y, segSize, segSize, 8);
   }
   
-  // Draw head
+  // Draw head with stronger glow
   let cabeza = snake[0];
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = `rgba(${myColor ? myColor[0] : COLOR_VIBORITA[0]}, 
+                                    ${myColor ? myColor[1] : COLOR_VIBORITA[1]}, 
+                                    ${myColor ? myColor[2] : COLOR_VIBORITA[2]}, 0.8)`;
+  
   fill(myColor ? myColor[0] : COLOR_VIBORITA[0], 
        myColor ? myColor[1] : COLOR_VIBORITA[1], 
        myColor ? myColor[2] : COLOR_VIBORITA[2]);
   rect(cabeza.x, cabeza.y, SNAKE_SIZE, SNAKE_SIZE, 8);
   
-  // Draw player name
+  // Draw player name with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.7)';
   fill(255);
   textSize(14);
   textAlign(CENTER, BOTTOM);
   text(nombreJugador, cabeza.x, cabeza.y - SNAKE_SIZE);
   
-  // Draw eyes
+  // Draw eyes with glow
+  drawingContext.shadowBlur = 5;
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.9)';
   fill(255);
   let eyeSize = 5;
   let eyeSpacing = 8;
@@ -1036,6 +1065,8 @@ function dibujarViborita() {
     ellipse(cabeza.x + eyeSpacing/2, eyeY, eyeSize, eyeSize);
   }
   
+  drawingContext.shadowBlur = 0;
+  
   // Draw drinking animation
   if (drinkingCoffee) {
     let elapsed = millis() - drinkingStartTime;
@@ -1044,7 +1075,6 @@ function dibujarViborita() {
     if (drinkingAnimation >= 1) {
       drinkingCoffee = false;
       // Add a small delay before collision detection resumes
-      // This prevents false collisions right after drinking coffee
       setTimeout(() => {
         // This empty callback ensures the timeout completes
       }, 100);
@@ -1071,38 +1101,58 @@ function dibujarViborita() {
 
 // Add new function for coffee drinking effect
 function drawCoffeeEffect(x, y, progress) {
-  let numParticles = 8;
-  let maxRadius = SNAKE_SIZE * 2;
+  let numParticles = 10;
+  let maxRadius = SNAKE_SIZE * 3;
   
   push();
   translate(x, y);
   
-  // Draw expanding circle
+  // Draw expanding circle with glow
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = `rgba(255, 150, 50, ${0.7 * (1 - progress)})`;
+  
   noFill();
   stroke(COLOR_CAFE[0], COLOR_CAFE[1], COLOR_CAFE[2], 255 * (1 - progress));
-  strokeWeight(2);
+  strokeWeight(3);
   let radius = map(progress, 0, 1, 0, maxRadius);
   ellipse(0, 0, radius * 2);
   
-  // Draw particles
+  // Draw particles with glow
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = `rgba(255, 150, 50, ${0.6 * (1 - progress)})`;
+  
   noStroke();
   fill(COLOR_CAFE[0], COLOR_CAFE[1], COLOR_CAFE[2], 255 * (1 - progress));
   for (let i = 0; i < numParticles; i++) {
-    let angle = TWO_PI * i / numParticles;
+    let angle = TWO_PI * i / numParticles + progress * TWO_PI * 0.2;
     let r = radius * 0.8;
     let px = cos(angle) * r;
     let py = sin(angle) * r;
-    let size = map(progress, 0, 1, 4, 0);
+    let size = map(progress, 0, 1, 6, 0);
     ellipse(px, py, size, size);
   }
   
-  // Draw steam effect
-  stroke(255, 255, 255, 100 * (1 - progress));
-  strokeWeight(1);
+  // Draw cosmic energy lines
+  stroke(255, 200, 100, 150 * (1 - progress));
+  strokeWeight(2);
+  for (let i = 0; i < 6; i++) {
+    let angle = TWO_PI * i / 6 + progress * PI;
+    let innerRad = radius * 0.3;
+    let outerRad = radius * 0.9;
+    line(cos(angle) * innerRad, sin(angle) * innerRad, 
+         cos(angle) * outerRad, sin(angle) * outerRad);
+  }
+  
+  // Draw steam effect with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = `rgba(255, 255, 255, ${0.6 * (1 - progress)})`;
+  
+  stroke(255, 255, 255, 150 * (1 - progress));
+  strokeWeight(2);
   for (let i = 0; i < 3; i++) {
     let steamX = (i - 1) * 10;
     let waveOffset = sin(frameCount * 0.1 + i) * 5;
-    let steamHeight = map(progress, 0, 1, 0, -20);
+    let steamHeight = map(progress, 0, 1, 0, -30);
     beginShape();
     vertex(steamX, 0);
     vertex(steamX + waveOffset, steamHeight * 0.5);
@@ -1111,6 +1161,7 @@ function drawCoffeeEffect(x, y, progress) {
   }
   
   pop();
+  drawingContext.shadowBlur = 0;
 }
 
 // Generate a new café at a random unoccupied position
@@ -1209,41 +1260,98 @@ function dibujarCafe() {
     let iconSize = SNAKE_SIZE * 1.2;
     let bounce = sin(frameCount * 0.05) * 1.5;
     
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'rgba(255, 220, 150, 0.5)';
+    // Glow effect for coffee
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = 'rgba(255, 200, 100, 0.8)';
     
     push();
     imageMode(CENTER);
     image(cafeIcon, cafe.x, cafe.y + bounce, iconSize, iconSize);
     pop();
     
-    // Name panel
+    // Name panel with cosmic style
     let panelWidth = textWidth(cafeActual) + 40;
     let panelHeight = 24;
     let panelY = cafe.y + SNAKE_SIZE * 1.5;
     
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(0, 0, 0, 0.6)';
     
+    // Cosmic gradient for panel
     let gradient = drawingContext.createLinearGradient(
       cafe.x - panelWidth/2, panelY - panelHeight/2,
       cafe.x + panelWidth/2, panelY + panelHeight/2
     );
-    gradient.addColorStop(0, 'rgba(35, 35, 45, 0.95)');
-    gradient.addColorStop(0.5, 'rgba(45, 45, 55, 0.95)');
-    gradient.addColorStop(1, 'rgba(35, 35, 45, 0.95)');
+    gradient.addColorStop(0, 'rgba(30, 20, 60, 0.95)');
+    gradient.addColorStop(0.5, 'rgba(60, 30, 90, 0.95)');
+    gradient.addColorStop(1, 'rgba(30, 20, 60, 0.95)');
     drawingContext.fillStyle = gradient;
     
     rect(cafe.x, panelY, panelWidth, panelHeight, 12);
     
+    // Text with glow
+    drawingContext.shadowBlur = 8;
+    drawingContext.shadowColor = 'rgba(255, 200, 100, 0.8)';
     textAlign(CENTER, CENTER);
     textSize(12);
     textStyle(BOLD);
     fill(255, 255, 240);
     text(cafeActual, cafe.x, panelY);
   } else {
-    drawCoffeeCup(cafe.x, cafe.y, SNAKE_SIZE * 1.2);
+    // Enhanced coffee cup
+    drawCoffeeWithGlow(cafe.x, cafe.y, SNAKE_SIZE * 1.2);
   }
+  
+  drawingContext.shadowBlur = 0;
+}
+
+// New function for enhanced coffee cup with glow
+function drawCoffeeWithGlow(x, y, size) {
+  // Cup glow
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = 'rgba(255, 200, 100, 0.7)';
+  
+  // Cup body
+  fill(COLOR_CAFE);
+  noStroke();
+  rect(x, y, size * 0.8, size, 6);
+  
+  // Cup handle
+  noFill();
+  stroke(COLOR_CAFE);
+  strokeWeight(size * 0.08);
+  arc(x + size * 0.4, y, size * 0.4, size * 0.5, PI/2, PI + PI/2);
+  
+  // Coffee liquid with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 150, 50, 0.5)';
+  noStroke();
+  fill(COLOR_CAFE_ACCENT);
+  ellipse(x, y - size * 0.2, size * 0.6, size * 0.15);
+  
+  // Steam with glow
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.6)';
+  stroke(255, 200);
+  strokeWeight(size * 0.05);
+  noFill();
+  
+  // Animated steam curls
+  let steamPhase = frameCount * 0.05;
+  
+  // First steam curl
+  beginShape();
+  vertex(x - size * 0.2, y - size * 0.4);
+  vertex(x - size * 0.1 + sin(steamPhase) * size * 0.05, y - size * 0.6);
+  vertex(x, y - size * 0.5 + cos(steamPhase) * size * 0.03);
+  endShape();
+  
+  // Second steam curl
+  beginShape();
+  vertex(x + size * 0.2, y - size * 0.4);
+  vertex(x + size * 0.1 - sin(steamPhase + PI/2) * size * 0.05, y - size * 0.6);
+  vertex(x, y - size * 0.5 + cos(steamPhase + PI/2) * size * 0.03);
+  endShape();
   
   drawingContext.shadowBlur = 0;
 }
@@ -1439,21 +1547,28 @@ function drawGameUI() {
   drawingContext.shadowBlur = 15;
   drawingContext.shadowColor = 'rgba(0, 0, 0, 0.3)';
   
-  // Header background with gradient
+  // Header background with cosmic gradient
   let headerGradient = drawingContext.createLinearGradient(
     0, 0,
     0, headerHeight
   );
-  headerGradient.addColorStop(0, 'rgba(30, 30, 40, 0.95)');
-  headerGradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
+  headerGradient.addColorStop(0, 'rgba(40, 10, 60, 0.95)');
+  headerGradient.addColorStop(0.5, 'rgba(30, 20, 50, 0.95)');
+  headerGradient.addColorStop(1, 'rgba(20, 10, 40, 0.95)');
   drawingContext.fillStyle = headerGradient;
   
   // Draw header rectangle
   rect(width/2, headerHeight/2, width, headerHeight);
   
-  // Add subtle line separator
-  stroke(100, 200, 255, 100);
+  // Add cosmic glow separator
   strokeWeight(2);
+  
+  // Animated glow line
+  let glowIntensity = map(sin(frameCount * 0.05), -1, 1, 0.3, 0.7);
+  let glowColor = `rgba(120, 80, 255, ${glowIntensity})`;
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = glowColor;
+  stroke(100, 150, 255, 200 * glowIntensity);
   line(0, headerHeight, width, headerHeight);
   noStroke();
   
@@ -1467,10 +1582,10 @@ function drawGameUI() {
   if (isMobile) {
     // Mobile layout - simplified header
     
-    // Neighborhood name with glow - centered
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-    fill(255);
+    // Neighborhood name with cosmic glow
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.7)';
+    fill(200, 230, 255);
     textSize(18);
     textStyle(BOLD);
     text(currentNeighborhood, width/2, headerHeight/2);
@@ -1478,6 +1593,8 @@ function drawGameUI() {
     
     // Player name - left
     textAlign(LEFT, CENTER);
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
     fill(255);
     textSize(16);
     textStyle(BOLD);
@@ -1485,9 +1602,9 @@ function drawGameUI() {
     
     // Score - right
     textAlign(RIGHT, CENTER);
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
-    fill(255, 255, 220);
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 220, 150, 0.6)';
+    fill(255, 230, 180);
     textSize(18);
     textStyle(BOLD);
     text(puntaje, width - 80, headerHeight/2);
@@ -1496,15 +1613,15 @@ function drawGameUI() {
     // Desktop layout - full header
     
     // Neighborhood label
-    fill(180, 180, 180);
+    fill(180, 190, 210);
     textSize(14);
     textStyle(NORMAL);
     text("BARRIO ACTUAL", width/2, headerHeight/2 - 12);
     
-    // Neighborhood name with glow
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.5)';
-    fill(255);
+    // Neighborhood name with cosmic glow
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(100, 200, 255, 0.7)';
+    fill(200, 230, 255);
     textSize(24);
     textStyle(BOLD);
     text(currentNeighborhood, width/2, headerHeight/2 + 12);
@@ -1514,12 +1631,14 @@ function drawGameUI() {
     textAlign(LEFT, CENTER);
     
     // Player label
-    fill(180, 180, 180);
+    fill(180, 190, 210);
     textSize(14);
     textStyle(NORMAL);
     text("JUGADOR", 30, headerHeight/2 - 12);
     
-    // Player name
+    // Player name with subtle glow
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
     fill(255);
     textSize(20);
     textStyle(BOLD);
@@ -1529,22 +1648,22 @@ function drawGameUI() {
     textAlign(RIGHT, CENTER);
     
     // Score label
-    fill(180, 180, 180);
+    fill(180, 190, 210);
     textSize(14);
     textStyle(NORMAL);
     text("PUNTAJE", width - 120, headerHeight/2 - 12);
     
-    // Score value with glow
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = 'rgba(255, 255, 220, 0.3)';
-    fill(255, 255, 220);
+    // Score value with cosmic glow
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 220, 150, 0.6)';
+    fill(255, 230, 180);
     textSize(24);
     textStyle(BOLD);
     text(puntaje, width - 120, headerHeight/2 + 12);
     drawingContext.shadowBlur = 0;
   }
   
-  // Draw sound control in header (changed from YouTube control)
+  // Draw sound control in header with cosmic style
   let buttonSize = isMobile ? 32 : 40;
   let x = width - (isMobile ? 35 : 45);
   let y = headerHeight/2;
@@ -1552,15 +1671,18 @@ function drawGameUI() {
   // Check if mouse is over button
   let mouseOverButton = dist(mouseX, mouseY, x, y) < buttonSize/2;
   
-  // Draw button circle
+  // Draw button circle with glow
+  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
+  drawingContext.shadowColor = 'rgba(100, 150, 255, 0.6)';
+  
   noFill();
-  stroke(100, 150, 255, mouseOverButton ? 180 : 120);
+  stroke(120, 180, 255, mouseOverButton ? 220 : 150);
   strokeWeight(2);
   ellipse(x, y, buttonSize, buttonSize);
   
   // Draw sound icon
   noStroke();
-  fill(255, mouseOverButton ? 255 : 200);
+  fill(200, 230, 255, mouseOverButton ? 255 : 200);
   
   // Draw speaker icon
   let iconSize = buttonSize * 0.5;
@@ -1578,62 +1700,163 @@ function drawGameUI() {
   vertex(speakerX - iconSize/4, speakerY);
   endShape();
   
-  // Sound waves (if playing)
+  // Sound waves (if playing) with animated glow
   if (isPlaying) {
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(100, 180, 255, 0.7)';
+    
     noFill();
-    stroke(255, mouseOverButton ? 255 : 200);
+    stroke(200, 230, 255, mouseOverButton ? 255 : 200);
     strokeWeight(2);
-    let waveSize = iconSize * 0.4;
+    
+    // Animated sound waves
+    let wavePhase = frameCount * 0.1;
+    let waveSize = iconSize * (0.4 + sin(wavePhase) * 0.05);
     arc(speakerX + iconSize/4, speakerY, waveSize, waveSize, -PI/3, PI/3);
-    arc(speakerX + iconSize/4, speakerY, waveSize * 1.5, waveSize * 1.5, -PI/3, PI/3);
+    
+    waveSize = iconSize * (1.5 + sin(wavePhase + PI/2) * 0.1);
+    arc(speakerX + iconSize/4, speakerY, waveSize, waveSize, -PI/3, PI/3);
   } else {
-    // X mark when muted
-    stroke(255, mouseOverButton ? 255 : 200);
+    // X mark when muted with glow
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = 'rgba(255, 100, 100, 0.6)';
+    
+    stroke(255, 150, 150, mouseOverButton ? 255 : 200);
     strokeWeight(2);
     let xSize = iconSize * 0.3;
     line(x + xSize, y - xSize, x + xSize * 2, y + xSize);
     line(x + xSize * 2, y - xSize, x + xSize, y + xSize);
   }
+  
+  drawingContext.shadowBlur = 0;
 }
 
-// Update drawSpaceBackground to accept an opacity parameter
+// Update drawSpaceBackground to create different colors for each neighborhood
 function drawSpaceBackground(opacity = 255) {
-  // Update color transition based on score
-  let targetSpaceIndex = Math.floor(puntaje / 10) % SPACE_COLORS.length;
-  if (targetSpaceIndex !== currentSpaceIndex) {
-    spaceTransitionProgress += 0.02;
-    if (spaceTransitionProgress >= 1) {
-      currentSpaceIndex = targetSpaceIndex;
-      spaceTransitionProgress = 0;
-    }
-  }
-
-  // Interpolate between current and next space color
-  let currentColor = SPACE_COLORS[currentSpaceIndex];
-  let nextColor = SPACE_COLORS[(currentSpaceIndex + 1) % SPACE_COLORS.length];
-  let r = lerp(currentColor[0], nextColor[0], spaceTransitionProgress);
-  let g = lerp(currentColor[1], nextColor[1], spaceTransitionProgress);
-  let b = lerp(currentColor[2], nextColor[2], spaceTransitionProgress);
+  // Create deep space background gradient
+  background(15, 10, 30); // Deep purple-blue background
   
-  // Create gradient background
-  let gradient = drawingContext.createRadialGradient(
+  // Calculate which quadrant the snake is in to determine neighborhood colors
+  let currentNeighborhood = getNeighborhoodFromPosition(snake && snake.length > 0 ? snake[0].x : width/2, 
+                                                       snake && snake.length > 0 ? snake[0].y : height/2);
+  
+  // Define unique color schemes for each neighborhood
+  let colorScheme;
+  switch(currentNeighborhood) {
+    case 'RECOLETA':
+      // Purple-pink theme
+      colorScheme = {
+        central: { inner: 'rgba(180, 100, 220, 0.7)', outer: 'rgba(140, 80, 180, 0.5)', edge: 'rgba(180, 100, 220, 0)' },
+        orb: { inner: 'rgba(220, 150, 220, 1)', middle: 'rgba(180, 100, 180, 0.9)', outer: 'rgba(140, 50, 140, 0.7)' },
+        orbShadow: 'rgba(180, 100, 220, 0.8)',
+        paths: { color: 'rgba(120, 100, 200, 30)', color2: 'rgba(120, 100, 200, 20)' }
+      };
+      break;
+    case 'PALERMO':
+      // Green-blue theme
+      colorScheme = {
+        central: { inner: 'rgba(100, 220, 180, 0.7)', outer: 'rgba(80, 180, 140, 0.5)', edge: 'rgba(100, 220, 180, 0)' },
+        orb: { inner: 'rgba(150, 220, 180, 1)', middle: 'rgba(100, 180, 140, 0.9)', outer: 'rgba(50, 140, 100, 0.7)' },
+        orbShadow: 'rgba(100, 220, 180, 0.8)',
+        paths: { color: 'rgba(100, 200, 150, 30)', color2: 'rgba(100, 200, 150, 20)' }
+      };
+      break;
+    case 'COLEGIALES':
+      // Blue-cyan theme
+      colorScheme = {
+        central: { inner: 'rgba(100, 180, 255, 0.7)', outer: 'rgba(80, 140, 220, 0.5)', edge: 'rgba(100, 180, 255, 0)' },
+        orb: { inner: 'rgba(150, 180, 255, 1)', middle: 'rgba(100, 140, 220, 0.9)', outer: 'rgba(50, 100, 180, 0.7)' },
+        orbShadow: 'rgba(100, 180, 255, 0.8)',
+        paths: { color: 'rgba(100, 150, 200, 30)', color2: 'rgba(100, 150, 200, 20)' }
+      };
+      break;
+    case 'CHACARITA':
+      // Orange-red theme (default to the original colors)
+      colorScheme = {
+        central: { inner: 'rgba(255, 100, 150, 0.7)', outer: 'rgba(255, 150, 100, 0.5)', edge: 'rgba(255, 100, 150, 0)' },
+        orb: { inner: 'rgba(255, 150, 150, 1)', middle: 'rgba(255, 100, 50, 0.9)', outer: 'rgba(255, 50, 100, 0.7)' },
+        orbShadow: 'rgba(255, 100, 150, 0.8)',
+        paths: { color: 'rgba(100, 100, 200, 30)', color2: 'rgba(100, 100, 200, 20)' }
+      };
+      break;
+  }
+  
+  // Create radial gradient for the central glow
+  let centralGradient = drawingContext.createRadialGradient(
     width/2, height/2, 0,
-    width/2, height/2, max(width, height)
+    width/2, height/2, width * 0.3
   );
-  gradient.addColorStop(0, `rgba(${r+20}, ${g+20}, ${b+20}, ${opacity/255})`);
-  gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacity/255})`);
-  drawingContext.fillStyle = gradient;
-  rect(0, 0, width*2, height*2);
+  
+  // Create glowing center with neighborhood-specific colors
+  centralGradient.addColorStop(0, colorScheme.central.inner);
+  centralGradient.addColorStop(0.4, colorScheme.central.outer);
+  centralGradient.addColorStop(1, colorScheme.central.edge);
+  
+  drawingContext.fillStyle = centralGradient;
+  ellipse(width/2, height/2, width * 0.6, width * 0.6);
+  
+  // Draw orbital paths (two concentric circles)
+  noFill();
+  strokeWeight(1);
+  
+  // First orbital path
+  stroke(colorScheme.paths.color);
+  ellipse(width/2, height/2, width * 0.4, width * 0.4);
+  
+  // Second orbital path
+  stroke(colorScheme.paths.color2);
+  ellipse(width/2, height/2, width * 0.7, width * 0.7);
+  
+  // Draw orbiting planets
+  noStroke();
+  
+  // Calculate planet positions based on time
+  let time = frameCount * 0.005;
+  
+  // Inner orbit planets (smaller, faster)
+  for (let i = 0; i < 4; i++) {
+    let angle = time * 0.8 + i * TWO_PI / 4;
+    let planetSize = (i % 3 === 0) ? 10 : 6; // Vary planet sizes
+    let orbitRadius = width * 0.2;
+    let x = width/2 + cos(angle) * orbitRadius;
+    let y = height/2 + sin(angle) * orbitRadius;
+    
+    // Add glow to planets
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    
+    fill(255, 255, 255, 220);
+    ellipse(x, y, planetSize, planetSize);
+  }
+  
+  // Outer orbit planets (larger, slower)
+  for (let i = 0; i < 3; i++) {
+    let angle = time * 0.5 + i * TWO_PI / 3;
+    let planetSize = (i % 2 === 0) ? 16 : 12; // Larger planets in outer orbit
+    let orbitRadius = width * 0.35;
+    let x = width/2 + cos(angle) * orbitRadius;
+    let y = height/2 + sin(angle) * orbitRadius;
+    
+    // Add glow to planets
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.6)';
+    
+    fill(255, 255, 255, 240);
+    ellipse(x, y, planetSize, planetSize);
+  }
   
   // Draw stars with twinkle effect
+  drawingContext.shadowBlur = 0;
   for (let star of stars) {
     let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
     let alpha = map(twinkle, -1, 1, 100, 255) * (opacity/255);
     let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
     
-    // Star glow
+    // Star glow for brighter stars
+    if (star.brightness > 200) {
     drawingContext.shadowBlur = size * 2;
-    drawingContext.shadowColor = `rgba(255, 255, 255, ${alpha/255})`;
+      drawingContext.shadowColor = `rgba(255, 255, 255, ${alpha/255 * 0.5})`;
+    }
     
     fill(255, 255, 255, alpha);
     noStroke();
@@ -1641,43 +1864,24 @@ function drawSpaceBackground(opacity = 255) {
   }
   drawingContext.shadowBlur = 0;
 
-  // Draw thin lines to separate neighborhoods
-  stroke(255, 255, 255, 40 * (opacity/255));
-  strokeWeight(1);
-  // Vertical divider
-  line(width/2, 0, width/2, height);
-  // Horizontal divider
-  line(0, height/2, width, height/2);
+  // Create central glowing orb with neighborhood-specific colors
+  let orbGradient = drawingContext.createRadialGradient(
+    width/2, height/2, 0,
+    width/2, height/2, width * 0.1
+  );
   
-  // Draw subtle neighborhood labels
-  textAlign(CENTER, CENTER);
-  textSize(24);
-  textStyle(NORMAL);
-  fill(255, 255, 255, 100 * (opacity/255)); // More visible white
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = `rgba(255, 255, 255, ${0.3 * (opacity/255)})`;
-  noStroke();
+  // Use neighborhood-specific colors for the orb
+  orbGradient.addColorStop(0, colorScheme.orb.inner);
+  orbGradient.addColorStop(0.3, colorScheme.orb.middle);
+  orbGradient.addColorStop(1, colorScheme.orb.outer);
   
-  // Position labels near the center of each quadrant
-  let offsetX = width * 0.2;
-  let offsetY = height * 0.2;
+  drawingContext.fillStyle = orbGradient;
   
-  // Draw each neighborhood name with subtle background
-  function drawNeighborhoodName(name, x, y) {
-    // Background pill
-    fill(0, 0, 0, 40 * (opacity/255));
-    rect(x, y, textWidth(name) + 40, 40, 20);
-    // Text
-    fill(255, 255, 255, 100 * (opacity/255));
-    text(name, x, y);
-  }
+  // Add strong glow to central orb with neighborhood-specific color
+  drawingContext.shadowBlur = 30;
+  drawingContext.shadowColor = colorScheme.orbShadow;
   
-  // Draw each neighborhood name
-  drawNeighborhoodName("RECOLETA", width * 0.25, offsetY);
-  drawNeighborhoodName("PALERMO", width * 0.75, offsetY);
-  drawNeighborhoodName("COLEGIALES", width * 0.25, height - offsetY);
-  drawNeighborhoodName("CHACARITA", width * 0.75, height - offsetY);
-  
+  ellipse(width/2, height/2, width * 0.15, width * 0.15);
   drawingContext.shadowBlur = 0;
 }
 
@@ -1886,36 +2090,47 @@ function verificarColisiones() {
 
 // Add the missing drawGameOver function
 function drawGameOver() {
-  // First draw a completely opaque background to hide everything
+  // Draw a cosmic background
   push();
-  // Use a solid dark background
-  background(15, 15, 25);
+  background(15, 10, 30);
   
-  // Draw stars with very low opacity for subtle background
-  for (let star of stars) {
-    let twinkle = sin(frameCount * 0.05 + star.x * 0.01) * 0.5 + 0.5;
-    let alpha = map(twinkle, -1, 1, 10, 40);
-    let size = map(twinkle, -1, 1, star.size * 0.5, star.size * 1.2);
-    
-    fill(255, 255, 255, alpha);
-    noStroke();
-    ellipse(star.x, star.y, size, size);
-  }
+  // Create a custom cosmic background
+  drawSpaceBackground(150); // Lower opacity for the background
+  
+  // Create additional cosmic effects for game over
+  drawGameOverCosmicEffects();
   
   // Calculate modal dimensions
   let modalWidth = isMobile ? min(400, width * 0.85) : min(500, width * 0.9);
   let modalHeight = isMobile ? min(350, height * 0.6) : min(400, height * 0.7);
   
-  // Draw modal background with rounded corners and stronger border
+  // Draw modal background with cosmic style
   rectMode(CENTER);
-  fill(25, 25, 40, 240);
+  
+  // Cosmic glass effect for modal
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = 'rgba(170, 70, 120, 0.6)';
+  
+  // Create cosmic gradient for modal
+  let modalGradient = drawingContext.createLinearGradient(
+    width/2 - modalWidth/2, height/2 - modalHeight/2 - 50,
+    width/2 + modalWidth/2, height/2 + modalHeight/2 - 50
+  );
+  modalGradient.addColorStop(0, 'rgba(60, 20, 80, 0.85)');
+  modalGradient.addColorStop(0.5, 'rgba(40, 15, 60, 0.85)');
+  modalGradient.addColorStop(1, 'rgba(60, 20, 80, 0.85)');
+  drawingContext.fillStyle = modalGradient;
+  
+  // Draw modal with cosmic border
+  fill(25, 25, 40, 240); // This won't be used because of the gradient
   strokeWeight(3);
-  stroke(200, 70, 70, 200);
+  let borderGlow = map(sin(frameCount * 0.05), -1, 1, 150, 250);
+  stroke(200, 70, borderGlow, 200);
   rect(width/2, height/2 - 50, modalWidth, modalHeight, 20); // Move modal up by 50px
   
   // Add a subtle inner glow to the modal
   noFill();
-  stroke(200, 70, 70, 50);
+  stroke(200, 70, 120, 50);
   strokeWeight(1);
   rect(width/2, height/2 - 50, modalWidth - 10, modalHeight - 10, 15); // Move modal up by 50px
   
@@ -1926,20 +2141,27 @@ function drawGameOver() {
   let scoreY = reasonY + (isMobile ? 50 : 70);
   let buttonY = centerY + modalHeight * 0.25;
   
-  // Game Over text with glow effect
+  // Game Over text with enhanced cosmic glow
   noStroke();
-  drawingContext.shadowBlur = 15;
-  drawingContext.shadowColor = 'rgba(255, 100, 100, 0.5)';
+  drawingContext.shadowBlur = 20;
+  drawingContext.shadowColor = 'rgba(255, 80, 120, 0.7)';
   textAlign(CENTER, CENTER);
   textSize(isMobile ? 32 : 38);
   textStyle(BOLD);
-  fill(255);
+  
+  // Animated color for Game Over text
+  let r = map(sin(frameCount * 0.05), -1, 1, 220, 255);
+  let g = map(sin(frameCount * 0.05 + PI/3), -1, 1, 120, 180);
+  let b = map(sin(frameCount * 0.05 + 2*PI/3), -1, 1, 150, 220);
+  fill(r, g, b);
+  
   text('¡GAME OVER!', width/2, titleY);
   
-  // Game over reason with icon
-  drawingContext.shadowBlur = 0;
+  // Game over reason with icon and glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(180, 200, 255, 0.6)';
   textSize(isMobile ? 18 : 22);
-  fill(220, 220, 220);
+  fill(200, 220, 255);
   textStyle(NORMAL);
   
   if (colisionJugador) {
@@ -1958,18 +2180,23 @@ function drawGameOver() {
     }
   }
   
-  // Score display with enhanced styling
+  // Score display with enhanced cosmic styling
+  drawingContext.shadowBlur = 5;
+  drawingContext.shadowColor = 'rgba(180, 200, 255, 0.4)';
   textSize(isMobile ? 16 : 18);
-  fill(180, 180, 180);
+  fill(180, 200, 230);
   text('PUNTAJE FINAL', width/2, scoreY - 20);
   
+  // Score with cosmic glow
+  drawingContext.shadowBlur = 15;
+  drawingContext.shadowColor = 'rgba(255, 220, 150, 0.7)';
   textSize(isMobile ? 36 : 42);
   textStyle(BOLD);
-  fill(255, 255, 220);
+  fill(255, 230, 180);
   text(puntaje, width/2, scoreY + 15);
   
-  // Restart button with hover effect
-  let buttonWidth = modalWidth * 0.5; // Same width for both mobile and desktop
+  // Restart button with cosmic style
+  let buttonWidth = modalWidth * 0.5;
   let buttonHeight = isMobile ? 45 : 55;
   
   // Check if mouse is over button
@@ -1978,28 +2205,39 @@ function drawGameOver() {
                        mouseY > buttonY - buttonHeight/2 &&
                        mouseY < buttonY + buttonHeight/2;
   
-  // Button shadow and glow
-  drawingContext.shadowBlur = mouseOverButton ? 15 : 10;
-  drawingContext.shadowColor = 'rgba(50, 120, 200, 0.4)';
+  // Button shadow and cosmic glow
+  drawingContext.shadowBlur = mouseOverButton ? 20 : 15;
+  drawingContext.shadowColor = 'rgba(80, 130, 255, 0.7)';
   
-  // Button with clean styling
-  fill(mouseOverButton ? '#4286f4' : '#2a5298');
-  stroke(100, 100, 200);
+  // Button with cosmic styling
+  let buttonGradient = drawingContext.createLinearGradient(
+    width/2 - buttonWidth/2, buttonY - buttonHeight/2,
+    width/2 + buttonWidth/2, buttonY + buttonHeight/2
+  );
+  buttonGradient.addColorStop(0, mouseOverButton ? 'rgba(80, 130, 255, 1)' : 'rgba(50, 90, 180, 1)');
+  buttonGradient.addColorStop(0.5, mouseOverButton ? 'rgba(90, 150, 255, 1)' : 'rgba(60, 100, 200, 1)');
+  buttonGradient.addColorStop(1, mouseOverButton ? 'rgba(80, 130, 255, 1)' : 'rgba(50, 90, 180, 1)');
+  drawingContext.fillStyle = buttonGradient;
+  
+  stroke(120, 180, 255);
   strokeWeight(2);
   rect(width/2, buttonY, buttonWidth, buttonHeight, 10);
   
-  // Button text
-  drawingContext.shadowBlur = 0;
+  // Button text with glow
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = 'rgba(255, 255, 255, 0.8)';
   fill(255);
   noStroke();
   textSize(isMobile ? 18 : 20);
   textStyle(BOLD);
   text('JUGAR DE NUEVO', width/2, buttonY);
   
-  // Add different instructions for mobile vs desktop
+  // Add different instructions with subtle glow
+  drawingContext.shadowBlur = 5;
+  drawingContext.shadowColor = 'rgba(180, 200, 255, 0.4)';
   textSize(isMobile ? 14 : 16);
   textStyle(NORMAL);
-  fill(150, 150, 150);
+  fill(180, 200, 230);
   if (isMobile) {
     text('Toca el botón para jugar de nuevo', width/2, buttonY + 35);
   } else {
@@ -2017,6 +2255,69 @@ function drawGameOver() {
   
   // Reset drawing settings
   pop();
+}
+
+// Add new function for additional cosmic effects on game over screen
+function drawGameOverCosmicEffects() {
+  // Draw cosmic particles
+  for (let i = 0; i < 50; i++) {
+    let x = random(width);
+    let y = random(height);
+    let size = random(1, 4);
+    let opacity = random(50, 150);
+    
+    fill(255, opacity);
+    noStroke();
+    ellipse(x, y, size, size);
+  }
+  
+  // Draw cosmic dust clouds
+  for (let i = 0; i < 5; i++) {
+    let x = random(width);
+    let y = random(height);
+    let size = random(100, 300);
+    let opacity = random(5, 20);
+    
+    // Nebula color variations
+    let r = random(100, 200);
+    let g = random(50, 150);
+    let b = random(150, 250);
+    
+    noStroke();
+    drawingContext.shadowBlur = 40;
+    drawingContext.shadowColor = `rgba(${r}, ${g}, ${b}, 0.1)`;
+    
+    fill(r, g, b, opacity);
+    ellipse(x, y, size, size);
+  }
+  
+  // Draw shooting stars
+  let time = frameCount * 0.01;
+  for (let i = 0; i < 3; i++) {
+    let progress = (time + i * 0.2) % 1;
+    let startX = width * (0.2 + i * 0.3);
+    let startY = height * 0.1;
+    let endX = startX + width * 0.2;
+    let endY = startY + height * 0.3;
+    
+    let x = map(progress, 0, 1, startX, endX);
+    let y = map(progress, 0, 1, startY, endY);
+    
+    if (progress < 0.7) {
+      drawingContext.shadowBlur = 20;
+      drawingContext.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      
+      strokeWeight(2);
+      stroke(255, 255, 255, 200 * (1 - progress/0.7));
+      line(x, y, x - 20, y - 20);
+      
+      noStroke();
+      fill(255, 255, 255, 255 * (1 - progress/0.7));
+      ellipse(x, y, 4, 4);
+    }
+  }
+  
+  drawingContext.shadowBlur = 0;
 }
 
 // P5.js Draw Function - Main game loop
